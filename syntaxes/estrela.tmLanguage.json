@@ -14,9 +14,6 @@
           "contentName": "source.jsx",
           "patterns": [
             {
-              "include": "#comments"
-            },
-            {
               "include": "source.jsx"
             }
           ]
@@ -31,9 +28,6 @@
           "name": "meta.embedded.block.estrela",
           "contentName": "source.tsx",
           "patterns": [
-            {
-              "include": "#comments"
-            },
             {
               "include": "source.tsx"
             }
@@ -50,9 +44,6 @@
           "contentName": "source.coffee",
           "patterns": [
             {
-              "include": "#comments"
-            },
-            {
               "include": "source.coffee"
             }
           ]
@@ -65,13 +56,10 @@
           "begin": "(?<=>)(?!</)",
           "end": "(?=</)",
           "name": "meta.embedded.block.estrela",
-          "contentName": "source.jsx",
+          "contentName": "source.tsx",
           "patterns": [
             {
-              "include": "#comments"
-            },
-            {
-              "include": "source.jsx"
+              "include": "source.tsx"
             }
           ]
         }
