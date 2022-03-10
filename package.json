@@ -1,25 +1,43 @@
 {
-    "name": "estrela",
-    "displayName": "Estrela",
-    "description": "Syntax Highlight for Estrela",
-    "version": "0.0.1",
-    "engines": {
-        "vscode": "^1.65.0"
-    },
-    "categories": [
-        "Programming Languages"
+  "name": "estrela",
+  "displayName": "Estrela",
+  "description": "Syntax Highlight for Estrela",
+  "icon": "icons/logo.png",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.65.0"
+  },
+  "galleryBanner": {
+    "color": "#dedede",
+    "theme": "light"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "javascript",
+    "estrela"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "estrela",
+        "aliases": [
+          "Estrela",
+          "estrela"
+        ],
+        "extensions": [
+          ".estrela"
+        ],
+        "configuration": "./language-configuration.json"
+      }
     ],
-    "contributes": {
-        "languages": [{
-            "id": "estrela",
-            "aliases": ["Estrela", "estrela"],
-            "extensions": [".estrela"],
-            "configuration": "./language-configuration.json"
-        }],
-        "grammars": [{
-            "language": "estrela",
-            "scopeName": "source.estrela",
-            "path": "./syntaxes/estrela.tmLanguage.json"
-        }]
-    }
+    "grammars": [
+      {
+        "language": "estrela",
+        "scopeName": "source.estrela",
+        "path": "./syntaxes/estrela.tmLanguage.json"
+      }
+    ]
+  }
 }
