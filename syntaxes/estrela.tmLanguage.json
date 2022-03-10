@@ -515,7 +515,7 @@
       ]
     },
     "attributes-directives": {
-      "begin": "(?<!<)(on|use|bind|transition|in|out|animate|let|class|style)(:)(?:((?:--)?[_$[:alpha:]][_\\-$[:alnum:]]*(?=\\s*=))|((?:--)?[_$[:alpha:]][_\\-$[:alnum:]]*))((\\|\\w+)*)",
+      "begin": "(?<!<)(on|bind|class|style)(:)(?:((?:--)?[_$[:alpha:]][_\\-$[:alnum:]]*(?=\\s*=))|((?:--)?[_$[:alpha:]][_\\-$[:alnum:]]*))((\\|\\w+)*)",
       "beginCaptures": {
         "1": {
           "patterns": [
@@ -576,16 +576,8 @@
     "attributes-directives-keywords": {
       "patterns": [
         {
-          "match": "on|use|bind",
-          "name": "keyword.control.svelte"
-        },
-        {
-          "match": "transition|in|out|animate",
-          "name": "keyword.other.animation.svelte"
-        },
-        {
-          "match": "let",
-          "name": "storage.type.svelte"
+          "match": "on|bind",
+          "name": "keyword.control.estrela"
         },
         {
           "match": "class|style",
@@ -627,11 +619,7 @@
           "name": "variable.parameter.svelte"
         },
         {
-          "match": "(?<=(use|transition|in|out|animate):).*$",
-          "name": "variable.function.svelte"
-        },
-        {
-          "match": "(?<=(let|class|style):).*$",
+          "match": "(?<=(class|style):).*$",
           "name": "variable.parameter.svelte"
         }
       ]
