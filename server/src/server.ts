@@ -1,9 +1,4 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-
-import { getLanguageService } from "vscode-html-languageservice";
+import { TextDocument } from "vscode-languageserver-textdocument";
 import {
   createConnection,
   InitializeParams,
@@ -11,7 +6,7 @@ import {
   TextDocuments,
   TextDocumentSyncKind,
 } from "vscode-languageserver/node";
-import { TextDocument } from "vscode-languageserver-textdocument";
+import { getSemanticTokenLegends } from "./semanticToken.legend";
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -21,35 +16,48 @@ const connection = createConnection(ProposedFeatures.all);
 // supports full document sync only
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-const htmlLanguageService = getLanguageService();
-
 connection.onInitialize((_params: InitializeParams) => {
-  console.log("initialized");
-
   return {
     capabilities: {
-      textDocumentSync: TextDocumentSyncKind.Full,
-      // Tell the client that the server supports code completion
-      completionProvider: {
-        resolveProvider: false,
+      textDocumentSync: {
+        openClose: true,
+        change: TextDocumentSyncKind.Incremental,
+        save: {
+          includeText: false,
+        },
       },
+      // codeLensProvider: {
+      //   resolveProvider: true,
+      // },
+      // colorProvider: true,
+      completionProvider: {
+        resolveProvider: true,
+        triggerCharacters: [".", ":"],
+      },
+      declarationProvider: true,
+      definitionProvider: true,
+      documentLinkProvider: {
+        resolveProvider: true,
+      },
+      documentSymbolProvider: true,
+      hoverProvider: true,
+      implementationProvider: true,
+      // linkedEditingRangeProvider: true,
+      referencesProvider: true,
+      renameProvider: true,
+      // semanticTokensProvider: {
+      //   legend: getSemanticTokenLegends(),
+      //   range: true,
+      //   full: true,
+      // },
+      // signatureHelpProvider: {
+      //   triggerCharacters: ["(", ",", "<"],
+      //   retriggerCharacters: [")"],
+      // },
+      typeDefinitionProvider: true,
+      // workspaceSymbolProvider: true,
     },
   };
-});
-
-connection.onCompletion(async (textDocumentPosition, token) => {
-  const document = documents.get(textDocumentPosition.textDocument.uri);
-  if (!document) {
-    return null;
-  }
-
-  console.log(textDocumentPosition, token);
-
-  return htmlLanguageService.doComplete(
-    document,
-    textDocumentPosition.position,
-    htmlLanguageService.parseHTMLDocument(document)
-  );
 });
 
 documents.listen(connection);

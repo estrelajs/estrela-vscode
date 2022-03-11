@@ -41,26 +41,11 @@
         "scopeName": "source.estrela",
         "path": "./syntaxes/estrela.tmLanguage.json",
         "embeddedLanguages": {
-          "text.html.basic": "html",
-          "text.html.markdown": "markdown",
-          "text.pug": "jade",
-          "source.css": "css",
-          "source.css.less": "less",
-          "source.css.scss": "scss",
-          "source.css.postcss": "postcss",
-          "source.sass": "sass",
-          "source.stylus": "stylus",
           "source.js": "javascript",
           "source.ts": "typescript",
-          "source.jsx": "javascript",
-          "source.tsx": "typescript",
-          "source.coffee": "coffeescript"
+          "source.jsx": "javascriptreact",
+          "source.tsx": "typescriptreact"
         }
-      }
-    ],
-    "breakpoints": [
-      {
-        "language": "estrela"
       }
     ]
   },

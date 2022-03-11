@@ -1,30 +1,15 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-
 import * as path from "path";
-import {
-  commands,
-  CompletionList,
-  ExtensionContext,
-  Uri,
-  workspace,
-} from "vscode";
-import { getLanguageService, TokenType } from "vscode-html-languageservice";
+import * as vscode from "vscode";
 import {
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
   TransportKind,
 } from "vscode-languageclient";
-import { getVirtualContent, isInsideTagRegion } from "./embeddedSupport";
 
 let client: LanguageClient;
 
-const htmlLanguageService = getLanguageService();
-
-export function activate(context: ExtensionContext) {
+export function activate(context: vscode.ExtensionContext) {
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(
     path.join("server", "out", "server.js")
@@ -44,64 +29,167 @@ export function activate(context: ExtensionContext) {
     },
   };
 
-  const virtualDocumentContents = new Map<string, string>();
+  const originalDocuments = new Map<string, vscode.TextDocument>();
 
-  workspace.registerTextDocumentContentProvider("embedded-content", {
+  const getEmbeddedUri = (
+    document: vscode.TextDocument,
+    ext = "tsx"
+  ): vscode.Uri => {
+    const originalUri = document.uri.toString();
+    const encodedUri = encodeURIComponent(originalUri);
+    const virtualPath = `embedded-content://${ext}/${encodedUri}.${ext}`;
+    const virtualUri = vscode.Uri.parse(virtualPath);
+    originalDocuments.set(virtualUri.path, document);
+    return virtualUri;
+  };
+
+  const getTsContent = (document: vscode.TextDocument): string => {
+    const content = document.getText();
+    const newLineIndex = content.indexOf("\n");
+    const styleStartIndex = content.indexOf("<style");
+    const scriptEndIndex = content.indexOf("</script>");
+    const codeSection = content.slice(newLineIndex, scriptEndIndex);
+    const templateSection = content.slice(scriptEndIndex + 9, styleStartIndex);
+    return `${codeSection}<>${templateSection}</>`;
+  };
+
+  vscode.workspace.registerTextDocumentContentProvider("embedded-content", {
     provideTextDocumentContent: (uri) => {
-      const originalUri = uri.path.slice(1).replace(/\.\w+$/, "");
-      const decodedUri = decodeURIComponent(originalUri);
-      return virtualDocumentContents.get(decodedUri);
+      const document = originalDocuments.get(uri.path);
+      return getTsContent(document);
     },
   });
 
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: "file", language: "estrela" }],
     middleware: {
-      provideCompletionItem: async (
-        document,
-        position,
-        context,
-        token,
-        next
-      ) => {
-        const isInScript = isInsideTagRegion(
-          TokenType.Script,
-          htmlLanguageService,
-          document.getText(),
-          document.offsetAt(position)
-        );
-        const isInStyle = isInsideTagRegion(
-          TokenType.Styles,
-          htmlLanguageService,
-          document.getText(),
-          document.offsetAt(position)
-        );
-
-        if (!isInScript && !isInStyle) {
-          return await next(document, position, context, token);
+      // provideCodeLenses: async (document) => {
+      //   const virtualUri = getEmbeddedUri(document);
+      //   const result = await vscode.commands.executeCommand<vscode.CodeLens[]>(
+      //     "vscode.executeCodeLensProvider",
+      //     virtualUri
+      //   );
+      //   return result;
+      // },
+      provideCompletionItem: async (document, position, context) => {
+        const virtualUri = getEmbeddedUri(document);
+        const result =
+          await vscode.commands.executeCommand<vscode.CompletionList>(
+            "vscode.executeCompletionItemProvider",
+            virtualUri,
+            position,
+            context.triggerCharacter
+          );
+        return result;
+      },
+      provideDeclaration: async (document, position) => {
+        const virtualUri = getEmbeddedUri(document);
+        const [declaration] = await vscode.commands.executeCommand<
+          vscode.Declaration[]
+        >("vscode.executeDeclarationProvider", virtualUri, position);
+        return declaration;
+      },
+      provideDefinition: async (document, position) => {
+        const virtualUri = getEmbeddedUri(document);
+        const result = await vscode.commands.executeCommand<
+          vscode.DefinitionLink[]
+        >("vscode.executeDefinitionProvider", virtualUri, position);
+        return result.map((definition) => {
+          // const document = originalDocuments.get(definition.targetUri.path);
+          // if (document) {
+          //   definition.targetUri = document.uri;
+          // }
+          return definition;
+        });
+      },
+      provideDocumentLinks: async (document) => {
+        const virtualUri = getEmbeddedUri(document);
+        const result = await vscode.commands.executeCommand<
+          vscode.DocumentSymbol[]
+        >("vscode.executeLinkProvider", virtualUri);
+        return result;
+      },
+      provideDocumentSymbols: async (document) => {
+        const virtualUri = getEmbeddedUri(document);
+        const result = await vscode.commands.executeCommand<
+          vscode.DocumentSymbol[]
+        >("vscode.executeDocumentSymbolProvider", virtualUri);
+        if (!result) {
+          return [];
         }
-
-        const originalUri = document.uri.toString();
-        virtualDocumentContents.set(
-          originalUri,
-          getVirtualContent(
-            isInScript ? "ts" : "css",
-            htmlLanguageService,
-            document.getText()
-          )
+        return result.map((docSymbol: any) => {
+          if (docSymbol.location) {
+            const document = originalDocuments.get(docSymbol.location.uri.path);
+            if (document) {
+              docSymbol.location.uri = document.uri;
+            }
+          }
+          return docSymbol;
+        });
+      },
+      provideHover: async (document, position) => {
+        const virtualUri = getEmbeddedUri(document);
+        const result = await vscode.commands.executeCommand<
+          vscode.Hover | vscode.Hover[]
+        >("vscode.executeHoverProvider", virtualUri, position);
+        return Array.isArray(result) ? result[0] : result;
+      },
+      provideImplementation: async (document, position) => {
+        const virtualUri = getEmbeddedUri(document);
+        const result = await vscode.commands.executeCommand<
+          vscode.DefinitionLink[]
+        >("vscode.executeImplementationProvider", virtualUri, position);
+        return result.map((definition) => {
+          const document = originalDocuments.get(definition.targetUri.path);
+          if (document) {
+            definition.targetUri = document.uri;
+          }
+          return definition;
+        });
+      },
+      provideReferences: async (document, position) => {
+        const virtualUri = getEmbeddedUri(document);
+        const result = await vscode.commands.executeCommand<vscode.Location[]>(
+          "vscode.executeReferenceProvider",
+          virtualUri,
+          position
         );
-
-        const vdocUriString = isInScript
-          ? `embedded-content://ts/${encodeURIComponent(originalUri)}.ts`
-          : `embedded-content://css/${encodeURIComponent(originalUri)}.css`;
-        const vdocUri = Uri.parse(vdocUriString);
-
-        return await commands.executeCommand<CompletionList>(
-          "vscode.executeCompletionItemProvider",
-          vdocUri,
-          position,
-          context.triggerCharacter
+        return result.map((location) => {
+          const document = originalDocuments.get(location.uri.path);
+          if (document) {
+            location.uri = document.uri;
+          }
+          return location;
+        });
+      },
+      prepareRename: async (document, position) => {
+        const virtualUri = getEmbeddedUri(document);
+        const result = await vscode.commands.executeCommand<vscode.Range>(
+          "vscode.prepareRename",
+          virtualUri,
+          position
         );
+        return result;
+      },
+      provideRenameEdits: async (document, position, newName) => {
+        const virtualUri = getEmbeddedUri(document);
+        const result =
+          await vscode.commands.executeCommand<vscode.WorkspaceEdit>(
+            "vscode.executeDocumentRenameProvider",
+            virtualUri,
+            position,
+            newName
+          );
+        return result;
+      },
+      provideTypeDefinition: async (document, position) => {
+        const virtualUri = getEmbeddedUri(document);
+        const result = await vscode.commands.executeCommand<vscode.Definition>(
+          "vscode.executeTypeDefinitionProvider",
+          virtualUri,
+          position
+        );
+        return result;
       },
     },
   };
@@ -119,8 +207,5 @@ export function activate(context: ExtensionContext) {
 }
 
 export function deactivate(): Thenable<void> | undefined {
-  if (!client) {
-    return undefined;
-  }
-  return client.stop();
+  return client?.stop();
 }
