@@ -4,6 +4,7 @@
   "description": "Syntax Highlight for Estrela",
   "icon": "icons/logo.png",
   "version": "0.0.1",
+  "main": "src/extension.js",
   "engines": {
     "vscode": "^1.65.0"
   },
@@ -15,8 +16,10 @@
     "Programming Languages"
   ],
   "keywords": [
-    "javascript",
     "estrela"
+  ],
+  "activationEvents": [
+    "onLanguage:estrela"
   ],
   "contributes": {
     "languages": [
@@ -36,8 +39,35 @@
       {
         "language": "estrela",
         "scopeName": "source.estrela",
-        "path": "./syntaxes/estrela.tmLanguage.json"
+        "path": "./syntaxes/estrela.tmLanguage.json",
+        "embeddedLanguages": {
+          "text.html.basic": "html",
+          "text.html.markdown": "markdown",
+          "text.pug": "jade",
+          "source.css": "css",
+          "source.css.less": "less",
+          "source.css.scss": "scss",
+          "source.css.postcss": "postcss",
+          "source.sass": "sass",
+          "source.stylus": "stylus",
+          "source.js": "javascript",
+          "source.ts": "typescript",
+          "source.jsx": "javascript",
+          "source.tsx": "typescript",
+          "source.coffee": "coffeescript"
+        }
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "estrela"
       }
     ]
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^17.0.21",
+    "@types/vscode": "^1.65.0",
+    "typescript": "^4.6.2"
   }
 }
