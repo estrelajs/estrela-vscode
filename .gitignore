@@ -1,5 +1,6 @@
 out
 node_modules
 client/server
+*.error.log
 .vscode-test
 *.vsix

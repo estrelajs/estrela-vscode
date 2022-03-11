@@ -48,7 +48,7 @@ export function activate(context: ExtensionContext) {
 
   workspace.registerTextDocumentContentProvider("embedded-content", {
     provideTextDocumentContent: (uri) => {
-      const originalUri = uri.path.slice(1).slice(0, -4);
+      const originalUri = uri.path.slice(1).replace(/\.\w+$/, "");
       const decodedUri = decodeURIComponent(originalUri);
       return virtualDocumentContents.get(decodedUri);
     },
@@ -64,59 +64,44 @@ export function activate(context: ExtensionContext) {
         token,
         next
       ) => {
-        if (
-          isInsideTagRegion(
-            TokenType.Styles,
-            htmlLanguageService,
-            document.getText(),
-            document.offsetAt(position)
-          )
-        ) {
-          const originalUri = document.uri.toString();
-          virtualDocumentContents.set(
-            originalUri,
-            getVirtualContent("css", htmlLanguageService, document.getText())
-          );
+        const isInScript = isInsideTagRegion(
+          TokenType.Script,
+          htmlLanguageService,
+          document.getText(),
+          document.offsetAt(position)
+        );
+        const isInStyle = isInsideTagRegion(
+          TokenType.Styles,
+          htmlLanguageService,
+          document.getText(),
+          document.offsetAt(position)
+        );
 
-          const vdocUriString = `embedded-content://css/${encodeURIComponent(
-            originalUri
-          )}.css`;
-          const vdocUri = Uri.parse(vdocUriString);
-          return await commands.executeCommand<CompletionList>(
-            "vscode.executeCompletionItemProvider",
-            vdocUri,
-            position,
-            context.triggerCharacter
-          );
+        if (!isInScript && !isInStyle) {
+          return await next(document, position, context, token);
         }
 
-        if (
-          isInsideTagRegion(
-            TokenType.Script,
+        const originalUri = document.uri.toString();
+        virtualDocumentContents.set(
+          originalUri,
+          getVirtualContent(
+            isInScript ? "ts" : "css",
             htmlLanguageService,
-            document.getText(),
-            document.offsetAt(position)
+            document.getText()
           )
-        ) {
-          const originalUri = document.uri.toString();
-          virtualDocumentContents.set(
-            originalUri,
-            getVirtualContent("ts", htmlLanguageService, document.getText())
-          );
+        );
 
-          const vdocUriString = `embedded-content://typescript/${encodeURIComponent(
-            originalUri
-          )}.ts`;
-          const vdocUri = Uri.parse(vdocUriString);
-          return await commands.executeCommand<CompletionList>(
-            "vscode.executeCompletionItemProvider",
-            vdocUri,
-            position,
-            context.triggerCharacter
-          );
-        }
+        const vdocUriString = isInScript
+          ? `embedded-content://ts/${encodeURIComponent(originalUri)}.ts`
+          : `embedded-content://css/${encodeURIComponent(originalUri)}.css`;
+        const vdocUri = Uri.parse(vdocUriString);
 
-        return await next(document, position, context, token);
+        return await commands.executeCommand<CompletionList>(
+          "vscode.executeCompletionItemProvider",
+          vdocUri,
+          position,
+          context.triggerCharacter
+        );
       },
     },
   };

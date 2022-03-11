@@ -9,6 +9,7 @@
       "name": "Extension",
       "type": "extensionHost",
       "request": "launch",
+      "log": true,
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"]
     }
   ]

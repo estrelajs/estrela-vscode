@@ -24,6 +24,8 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 const htmlLanguageService = getLanguageService();
 
 connection.onInitialize((_params: InitializeParams) => {
+  console.log("initialized");
+
   return {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Full,
@@ -40,6 +42,8 @@ connection.onCompletion(async (textDocumentPosition, token) => {
   if (!document) {
     return null;
   }
+
+  console.log(textDocumentPosition, token);
 
   return htmlLanguageService.doComplete(
     document,
