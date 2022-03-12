@@ -1,11 +1,11 @@
 import ts from "typescript";
 import { getLastPartOfPath } from "../../utils";
 import { DocumentSnapshot } from "./DocumentSnapshot";
-import { createSvelteSys } from "./svelte-sys";
+import { createEstrelaSys } from "./estrela-sys";
 import {
-  ensureRealSvelteFilePath,
+  ensureRealEstrelaFilePath,
   getExtensionFromScriptKind,
-  isVirtualSvelteFilePath,
+  isVirtualEstrelaFilePath,
 } from "./utils";
 
 /**
@@ -71,39 +71,39 @@ class ModuleResolutionCache {
   }
 
   private getKey(moduleName: string, containingFile: string) {
-    return containingFile + ":::" + ensureRealSvelteFilePath(moduleName);
+    return containingFile + ":::" + ensureRealEstrelaFilePath(moduleName);
   }
 }
 
 /**
- * Creates a module loader specifically for `.svelte` files.
+ * Creates a module loader specifically for `.estrela` files.
  *
- * The typescript language service tries to look up other files that are referenced in the currently open svelte file.
- * For `.ts`/`.js` files this works, for `.svelte` files it does not by default.
- * Reason: The typescript language service does not know about the `.svelte` file ending,
- * so it assumes it's a normal typescript file and searches for files like `../Component.svelte.ts`, which is wrong.
- * In order to fix this, we need to wrap typescript's module resolution and reroute all `.svelte.ts` file lookups to .svelte.
+ * The typescript language service tries to look up other files that are referenced in the currently open estrela file.
+ * For `.ts`/`.js` files this works, for `.estrela` files it does not by default.
+ * Reason: The typescript language service does not know about the `.estrela` file ending,
+ * so it assumes it's a normal typescript file and searches for files like `../Component.estrela.ts`, which is wrong.
+ * In order to fix this, we need to wrap typescript's module resolution and reroute all `.estrela.ts` file lookups to .estrela.
  *
- * @param getSnapshot A function which returns a (in case of svelte file fully preprocessed) typescript/javascript snapshot
+ * @param getSnapshot A function which returns a (in case of estrela file fully preprocessed) typescript/javascript snapshot
  * @param compilerOptions The typescript compiler options
  */
-export function createSvelteModuleLoader(
+export function createEstrelaModuleLoader(
   getSnapshot: (fileName: string) => DocumentSnapshot,
   compilerOptions: ts.CompilerOptions
 ) {
-  const svelteSys = createSvelteSys(getSnapshot);
+  const estrelaSys = createEstrelaSys(getSnapshot);
   const moduleCache = new ModuleResolutionCache();
 
   return {
-    fileExists: svelteSys.fileExists,
-    readFile: svelteSys.readFile,
-    readDirectory: svelteSys.readDirectory,
+    fileExists: estrelaSys.fileExists,
+    readFile: estrelaSys.readFile,
+    readDirectory: estrelaSys.readDirectory,
     deleteFromModuleCache: (path: string) => {
-      svelteSys.deleteFromCache(path);
+      estrelaSys.deleteFromCache(path);
       moduleCache.delete(path);
     },
     deleteUnresolvedResolutionsFromCache: (path: string) => {
-      svelteSys.deleteFromCache(path);
+      estrelaSys.deleteFromCache(path);
       moduleCache.deleteUnresolvedResolutionsFromCache(path);
     },
     resolveModuleNames,
@@ -129,8 +129,8 @@ export function createSvelteModuleLoader(
     containingFile: string
   ): ts.ResolvedModule | undefined {
     // Delegate to the TS resolver first.
-    // If that does not bring up anything, try the Svelte Module loader
-    // which is able to deal with .svelte files.
+    // If that does not bring up anything, try the Estrela Module loader
+    // which is able to deal with .estrela files.
     const tsResolvedModule = ts.resolveModuleName(
       name,
       containingFile,
@@ -139,34 +139,34 @@ export function createSvelteModuleLoader(
     ).resolvedModule;
     if (
       tsResolvedModule &&
-      !isVirtualSvelteFilePath(tsResolvedModule.resolvedFileName)
+      !isVirtualEstrelaFilePath(tsResolvedModule.resolvedFileName)
     ) {
       return tsResolvedModule;
     }
 
-    const svelteResolvedModule = ts.resolveModuleName(
+    const estrelaResolvedModule = ts.resolveModuleName(
       name,
       containingFile,
       compilerOptions,
-      svelteSys
+      estrelaSys
     ).resolvedModule;
     if (
-      !svelteResolvedModule ||
-      !isVirtualSvelteFilePath(svelteResolvedModule.resolvedFileName)
+      !estrelaResolvedModule ||
+      !isVirtualEstrelaFilePath(estrelaResolvedModule.resolvedFileName)
     ) {
-      return svelteResolvedModule;
+      return estrelaResolvedModule;
     }
 
-    const resolvedFileName = ensureRealSvelteFilePath(
-      svelteResolvedModule.resolvedFileName
+    const resolvedFileName = ensureRealEstrelaFilePath(
+      estrelaResolvedModule.resolvedFileName
     );
     const snapshot = getSnapshot(resolvedFileName);
 
-    const resolvedSvelteModule: ts.ResolvedModuleFull = {
+    const resolvedEstrelaModule: ts.ResolvedModuleFull = {
       extension: getExtensionFromScriptKind(snapshot && snapshot.scriptKind),
       resolvedFileName,
-      isExternalLibraryImport: svelteResolvedModule.isExternalLibraryImport,
+      isExternalLibraryImport: estrelaResolvedModule.isExternalLibraryImport,
     };
-    return resolvedSvelteModule;
+    return resolvedEstrelaModule;
   }
 }

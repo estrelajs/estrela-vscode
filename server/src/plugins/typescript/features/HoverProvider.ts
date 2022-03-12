@@ -6,7 +6,7 @@ import {
   mapObjWithRangeToOriginal,
 } from "../../../lib/documents";
 import { HoverProvider } from "../../interfaces";
-import { SvelteDocumentSnapshot } from "../DocumentSnapshot";
+import { EstrelaDocumentSnapshot } from "../DocumentSnapshot";
 import { LSAndTSDocResolver } from "../LSAndTSDocResolver";
 import { getMarkdownDocumentation } from "../previewer";
 import { convertRange } from "../utils";
@@ -40,7 +40,7 @@ export class HoverProviderImpl implements HoverProvider {
     // show docs of $store instead of store if necessary
     const is$store = fragment.text
       .substring(0, info.textSpan.start)
-      .endsWith("(__sveltets_1_store_get(");
+      .endsWith("(__estrelats_1_store_get(");
     if (is$store) {
       const infoFor$store = lang.getQuickInfoAtPosition(
         tsDoc.filePath,
@@ -71,7 +71,7 @@ export class HoverProviderImpl implements HoverProvider {
   private async getEventHoverInfo(
     lang: ts.LanguageService,
     doc: Document,
-    tsDoc: SvelteDocumentSnapshot,
+    tsDoc: EstrelaDocumentSnapshot,
     originalPosition: Position
   ): Promise<Hover | null> {
     const possibleEventName = getWordAt(

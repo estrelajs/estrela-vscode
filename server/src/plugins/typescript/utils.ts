@@ -10,7 +10,7 @@ import {
 } from "vscode-languageserver";
 import { Document, isInTag, mapRangeToOriginal } from "../../lib/documents";
 import { pathToUrl } from "../../utils";
-import { SnapshotFragment, SvelteSnapshotFragment } from "./DocumentSnapshot";
+import { SnapshotFragment, EstrelaSnapshotFragment } from "./DocumentSnapshot";
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
   const ext = fileName.substr(fileName.lastIndexOf("."));
@@ -66,21 +66,21 @@ export function getScriptKindFromAttributes(
   }
 }
 
-export function isSvelteFilePath(filePath: string) {
-  return filePath.endsWith(".svelte");
+export function isEstrelaFilePath(filePath: string) {
+  return filePath.endsWith(".estrela");
 }
 
-export function isVirtualSvelteFilePath(filePath: string) {
-  return filePath.endsWith(".svelte.ts");
+export function isVirtualEstrelaFilePath(filePath: string) {
+  return filePath.endsWith(".estrela.ts");
 }
 
-export function toRealSvelteFilePath(filePath: string) {
+export function toRealEstrelaFilePath(filePath: string) {
   return filePath.slice(0, -".ts".length);
 }
 
-export function ensureRealSvelteFilePath(filePath: string) {
-  return isVirtualSvelteFilePath(filePath)
-    ? toRealSvelteFilePath(filePath)
+export function ensureRealEstrelaFilePath(filePath: string) {
+  return isVirtualEstrelaFilePath(filePath)
+    ? toRealEstrelaFilePath(filePath)
     : filePath;
 }
 
@@ -99,7 +99,6 @@ export function convertToLocationRange(
   textSpan: ts.TextSpan
 ): Range {
   const range = mapRangeToOriginal(defDoc, convertRange(defDoc, textSpan));
-  // Some definition like the svelte component class definition don't exist in the original, so we map to 0,1
   if (range.start.line < 0) {
     range.start.line = 0;
     range.start.character = 1;
@@ -332,7 +331,7 @@ export function convertToTextSpan(
 
 export function isInScript(
   position: Position,
-  fragment: SvelteSnapshotFragment | Document
+  fragment: EstrelaSnapshotFragment | Document
 ) {
   return (
     isInTag(position, fragment.scriptInfo) ||
@@ -351,7 +350,8 @@ export function getDiagnosticTag(diagnostic: ts.Diagnostic): DiagnosticTag[] {
   return tags;
 }
 
-export function changeSvelteComponentName(name: string) {
+// TODO: remove it
+export function changeComponentName(name: string) {
   return name.replace(/(\w+)__SvelteComponent_/, "$1");
 }
 

@@ -13,7 +13,7 @@ import {
 import {
   DocumentSnapshot,
   SnapshotFragment,
-  SvelteDocumentSnapshot,
+  EstrelaDocumentSnapshot,
 } from "../DocumentSnapshot";
 import { LSAndTSDocResolver } from "../LSAndTSDocResolver";
 import { or } from "../../../utils";
@@ -23,13 +23,13 @@ type NodePredicate = (node: ts.Node) => boolean;
 type NodeTypePredicate<T extends ts.Node> = (node: ts.Node) => node is T;
 
 /**
- * If the given original position is within a Svelte starting tag,
+ * If the given original position is within a Estrela starting tag,
  * return the snapshot of that component.
  */
 export async function getComponentAtPosition(
   lang: ts.LanguageService,
   doc: Document,
-  tsDoc: SvelteDocumentSnapshot,
+  tsDoc: EstrelaDocumentSnapshot,
   originalPosition: Position
 ): Promise<ComponentInfoProvider | null> {
   if (tsDoc.parserError) {
@@ -69,7 +69,7 @@ export async function getComponentAtPosition(
 
 export function isComponentAtPosition(
   doc: Document,
-  tsDoc: SvelteDocumentSnapshot,
+  tsDoc: EstrelaDocumentSnapshot,
   originalPosition: Position
 ): boolean {
   if (tsDoc.parserError) {
@@ -161,7 +161,7 @@ export class SnapshotFragmentMap {
   }
 }
 
-export function isAfterSvelte2TsxPropsReturn(text: string, end: number) {
+export function isAfterEstrela2TsxPropsReturn(text: string, end: number) {
   const textBeforeProp = text.substring(0, end);
   // This is how svelte2tsx writes out the props
   if (textBeforeProp.includes("\nreturn { props: {")) {

@@ -168,7 +168,7 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
     signatureHelpItem: ts.SignatureHelpItem
   ) {
     return signatureHelpItem.prefixDisplayParts.some((part) =>
-      part.text.includes("__sveltets")
+      part.text.includes("__estrelats")
     );
   }
 }

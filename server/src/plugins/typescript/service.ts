@@ -6,15 +6,15 @@ import { Document } from "../../lib/documents";
 // import { configLoader } from '../../lib/documents/configLoader';
 import { Logger } from "../../logger";
 import { normalizePath } from "../../utils";
-import { DocumentSnapshot, SvelteSnapshotOptions } from "./DocumentSnapshot";
-import { createSvelteModuleLoader } from "./module-loader";
+import { DocumentSnapshot, EstrelaSnapshotOptions } from "./DocumentSnapshot";
+import { createEstrelaModuleLoader } from "./module-loader";
 import {
   GlobalSnapshotsManager,
   ignoredBuildDirectories,
   SnapshotManager,
 } from "./SnapshotManager";
 import {
-  ensureRealSvelteFilePath,
+  ensureRealEstrelaFilePath,
   findTsConfigPath,
   hasTsExtensions,
 } from "./utils";
@@ -128,24 +128,24 @@ async function createLanguageService(
   // the default language.
   // await configLoader.loadConfigs(workspacePath);
 
-  const svelteModuleLoader = createSvelteModuleLoader(
+  const estrelaModuleLoader = createEstrelaModuleLoader(
     getSnapshot,
     compilerOptions
   );
 
-  let svelteTsPath: string;
+  let estrelaTsPath: string;
   try {
-    // For when svelte2tsx/svelte-check is part of node_modules, for example VS Code extension
-    svelteTsPath = dirname(require.resolve(docContext.ambientTypesSource));
+    // For when estrela2tsx/estrela-check is part of node_modules, for example VS Code extension
+    estrelaTsPath = dirname(require.resolve(docContext.ambientTypesSource));
   } catch (e) {
     // Fall back to dirname
-    svelteTsPath = __dirname;
+    estrelaTsPath = __dirname;
   }
-  const svelteTsxFiles = [
-    "./svelte-shims.d.ts",
-    "./svelte-jsx.d.ts",
-    "./svelte-native-jsx.d.ts",
-  ].map((f) => ts.sys.resolvePath(resolve(svelteTsPath, f)));
+  const estrelaTsxFiles = [
+    "./estrela-shims.d.ts",
+    "./estrela-jsx.d.ts",
+    "./estrela-native-jsx.d.ts",
+  ].map((f) => ts.sys.resolvePath(resolve(estrelaTsPath, f)));
 
   let languageServiceReducedMode = false;
   let projectVersion = 0;
@@ -159,7 +159,7 @@ async function createLanguageService(
             ? []
             : snapshotManager.getProjectFileNames()),
           ...snapshotManager.getFileNames(),
-          ...svelteTsxFiles,
+          ...estrelaTsxFiles,
         ])
       ),
     getScriptVersion: (fileName: string) =>
@@ -167,10 +167,10 @@ async function createLanguageService(
     getScriptSnapshot: getSnapshot,
     getCurrentDirectory: () => workspacePath,
     getDefaultLibFileName: ts.getDefaultLibFilePath,
-    fileExists: svelteModuleLoader.fileExists,
-    readFile: svelteModuleLoader.readFile,
-    resolveModuleNames: svelteModuleLoader.resolveModuleNames,
-    readDirectory: svelteModuleLoader.readDirectory,
+    fileExists: estrelaModuleLoader.fileExists,
+    readFile: estrelaModuleLoader.readFile,
+    resolveModuleNames: estrelaModuleLoader.resolveModuleNames,
+    readDirectory: estrelaModuleLoader.readDirectory,
     getDirectories: ts.sys.getDirectories,
     useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
     getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind,
@@ -179,10 +179,10 @@ async function createLanguageService(
   };
 
   let languageService = ts.createLanguageService(host);
-  const transformationConfig: SvelteSnapshotOptions = {
+  const transformationConfig: EstrelaSnapshotOptions = {
     transformOnTemplateError: docContext.transformOnTemplateError,
     useNewTransformation: docContext.useNewTransformation,
-    typingsNamespace: raw?.svelteOptions?.namespace || "svelteHTML",
+    typingsNamespace: raw?.estrelaOptions?.namespace || "estrelaHTML",
   };
 
   docContext.globalSnapshotsManager.onChange(() => {
@@ -205,7 +205,7 @@ async function createLanguageService(
   };
 
   function deleteSnapshot(filePath: string): void {
-    svelteModuleLoader.deleteFromModuleCache(filePath);
+    estrelaModuleLoader.deleteFromModuleCache(filePath);
     snapshotManager.delete(filePath);
   }
 
@@ -225,7 +225,7 @@ async function createLanguageService(
     }
 
     if (!prevSnapshot) {
-      svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
+      estrelaModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
     }
 
     const newSnapshot = DocumentSnapshot.fromDocument(
@@ -249,7 +249,7 @@ async function createLanguageService(
       return prevSnapshot;
     }
 
-    svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
+    estrelaModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
     const newSnapshot = DocumentSnapshot.fromFilePath(
       filePath,
       docContext.createDocument,
@@ -260,14 +260,14 @@ async function createLanguageService(
   }
 
   function getSnapshot(fileName: string): DocumentSnapshot {
-    fileName = ensureRealSvelteFilePath(fileName);
+    fileName = ensureRealEstrelaFilePath(fileName);
 
     let doc = snapshotManager.get(fileName);
     if (doc) {
       return doc;
     }
 
-    svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
+    estrelaModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
     doc = DocumentSnapshot.fromFilePath(
       fileName,
       docContext.createDocument,
@@ -304,7 +304,7 @@ async function createLanguageService(
     changes?: TextDocumentContentChangeEvent[]
   ): void {
     if (!snapshotManager.has(fileName)) {
-      svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
+      estrelaModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
     }
     snapshotManager.updateTsOrJsFile(fileName, changes);
   }
@@ -321,7 +321,7 @@ async function createLanguageService(
       skipLibCheck: true,
     };
     if (!docContext.useNewTransformation) {
-      // these are needed to handle the results of svelte2tsx preprocessing:
+      // these are needed to handle the results of estrela2tsx preprocessing:
       forcedCompilerOptions.jsx = ts.JsxEmit.Preserve;
     }
 
@@ -350,10 +350,10 @@ async function createLanguageService(
       undefined,
       [
         {
-          extension: "svelte",
+          extension: "estrela",
           isMixedContent: true,
           // Deferred was added in a later TS version, fall back to tsx
-          // If Deferred exists, this means that all Svelte files are included
+          // If Deferred exists, this means that all Estrela files are included
           // in parsedConfig.fileNames
           scriptKind:
             ts.ScriptKind.Deferred ??
@@ -369,35 +369,35 @@ async function createLanguageService(
       ...forcedCompilerOptions,
     };
 
-    // detect which JSX namespace to use (svelte | svelteNative) if not specified or not compatible
+    // detect which JSX namespace to use (estrela | estrelaNative) if not specified or not compatible
     if (
       !compilerOptions.jsxFactory ||
-      !compilerOptions.jsxFactory.startsWith("svelte")
+      !compilerOptions.jsxFactory.startsWith("estrela")
     ) {
       if (!docContext.useNewTransformation) {
-        //default to regular svelte, this causes the usage of the "svelte.JSX" namespace
-        compilerOptions.jsxFactory = "svelte.createElement";
+        //default to regular estrela, this causes the usage of the "estrela.JSX" namespace
+        compilerOptions.jsxFactory = "estrela.createElement";
       }
 
-      //override if we detect svelte-native
+      //override if we detect estrela-native
       if (workspacePath) {
         try {
-          const svelteNativePkgInfo = getPackageInfo(
-            "svelte-native",
+          const estrelaNativePkgInfo = getPackageInfo(
+            "estrela-native",
             workspacePath
           );
-          if (svelteNativePkgInfo.path) {
+          if (estrelaNativePkgInfo.path) {
             if (docContext.useNewTransformation) {
               // For backwards compatibility
-              parsedConfig.raw.svelteOptions =
-                parsedConfig.raw.svelteOptions || {};
-              parsedConfig.raw.svelteOptions.namespace = "svelteNative.JSX";
+              parsedConfig.raw.estrelaOptions =
+                parsedConfig.raw.estrelaOptions || {};
+              parsedConfig.raw.estrelaOptions.namespace = "estrelaNative.JSX";
             } else {
-              compilerOptions.jsxFactory = "svelteNative.createElement";
+              compilerOptions.jsxFactory = "estrelaNative.createElement";
             }
           }
         } catch (e) {
-          //we stay regular svelte
+          //we stay regular estrela
         }
       }
     }

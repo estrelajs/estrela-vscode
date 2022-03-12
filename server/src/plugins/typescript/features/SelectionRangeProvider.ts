@@ -2,7 +2,7 @@ import ts from "typescript";
 import { Position, Range, SelectionRange } from "vscode-languageserver";
 import { Document, mapSelectionRangeToParent } from "../../../lib/documents";
 import { SelectionRangeProvider } from "../../interfaces";
-import { SvelteSnapshotFragment } from "../DocumentSnapshot";
+import { EstrelaSnapshotFragment } from "../DocumentSnapshot";
 import { LSAndTSDocResolver } from "../LSAndTSDocResolver";
 import { convertRange } from "../utils";
 
@@ -29,7 +29,7 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
   }
 
   private toSelectionRange(
-    fragment: SvelteSnapshotFragment,
+    fragment: EstrelaSnapshotFragment,
     { textSpan, parent }: ts.SelectionRange
   ): SelectionRange {
     return {

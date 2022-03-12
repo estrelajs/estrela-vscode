@@ -21,9 +21,9 @@ import {
 import { LSConfigManager } from "../../../ls-config";
 import { getIndent, isNil, modifyLines, pathToUrl } from "../../../utils";
 import { CodeActionsProvider } from "../../interfaces";
-import { SnapshotFragment, SvelteSnapshotFragment } from "../DocumentSnapshot";
+import { SnapshotFragment, EstrelaSnapshotFragment } from "../DocumentSnapshot";
 import { LSAndTSDocResolver } from "../LSAndTSDocResolver";
-import { changeSvelteComponentName, convertRange } from "../utils";
+import { changeComponentName, convertRange } from "../utils";
 import { CompletionsProviderImpl } from "./CompletionProvider";
 import {
   findContainingNode,
@@ -167,6 +167,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     );
   }
 
+  // TODO: is it really necessary?
   private checkRemoveImportCodeActionRange(
     edit: ts.TextChange,
     fragment: SnapshotFragment,
@@ -183,7 +184,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
       range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
       range.end.character += 1;
       if (
-        fragment instanceof SvelteSnapshotFragment &&
+        fragment instanceof EstrelaSnapshotFragment &&
         isAtEndOfLine(
           getLineAtPosition(range.end, fragment.originalText),
           range.end.character
@@ -251,7 +252,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             .map((edit) => {
               if (
                 fix.fixName === "import" &&
-                fragment instanceof SvelteSnapshotFragment
+                fragment instanceof EstrelaSnapshotFragment
               ) {
                 return this.completionProvider.codeActionChangeToTextEdit(
                   document,
@@ -384,9 +385,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     }
 
     const name = tagName.getText();
-    const suffixedName = name + "__SvelteComponent_";
+    const suffixedName = name + "__EstrelaComponent_"; // TODO: remove it.
     const errorPreventingUserPreferences =
-      this.completionProvider.fixUserPreferencesForSvelteComponentImport(
+      this.completionProvider.fixUserPreferencesForEstrelaComponentImport(
         userPreferences
       );
 
@@ -403,7 +404,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         )
         ?.codeActions?.map((a) => ({
           ...a,
-          description: changeSvelteComponentName(a.description),
+          description: changeComponentName(a.description),
           fixName: "import",
         })) ?? [];
 

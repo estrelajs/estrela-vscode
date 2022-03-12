@@ -20,12 +20,12 @@ import {
   mapSeverity,
 } from "../utils";
 import {
-  SvelteDocumentSnapshot,
-  SvelteSnapshotFragment,
+  EstrelaDocumentSnapshot,
+  EstrelaSnapshotFragment,
 } from "../DocumentSnapshot";
 import {
   isInGeneratedCode,
-  isAfterSvelte2TsxPropsReturn,
+  isAfterEstrela2TsxPropsReturn,
   findNodeAtSpan,
   isReactiveStatement,
   isInReactiveStatement,
@@ -38,7 +38,7 @@ import {
   swapRangeStartEndIfNecessary,
 } from "../../../utils";
 import { LSConfigManager } from "../../../ls-config";
-import { isAttributeName, isEventHandler } from "../svelte-ast-utils";
+import { isAttributeName, isEventHandler } from "../estrela-ast-utils";
 
 enum DiagnosticCode {
   MODIFIERS_CANNOT_APPEAR_HERE = 1184, // "Modifiers cannot appear here."
@@ -141,7 +141,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 }
 
 function mapRange(
-  fragment: SvelteSnapshotFragment,
+  fragment: EstrelaSnapshotFragment,
   document: Document,
   useNewTransformation: boolean
 ): (value: Diagnostic) => Diagnostic {
@@ -150,7 +150,7 @@ function mapRange(
 
     if (range.start.line < 0) {
       const is$$PropsError =
-        isAfterSvelte2TsxPropsReturn(
+        isAfterEstrela2TsxPropsReturn(
           fragment.text,
           fragment.offsetAt(diagnostic.range.start)
         ) && diagnostic.message.includes("$$Props");
@@ -227,7 +227,7 @@ function hasNoNegativeLines(diagnostic: Diagnostic): boolean {
 function isNoFalsePositive(
   useNewTransformation: boolean,
   document: Document,
-  tsDoc: SvelteDocumentSnapshot
+  tsDoc: EstrelaDocumentSnapshot
 ) {
   const text = document.getText();
   const usesPug = document.getLanguageAttribute("template") === "pug";
@@ -240,7 +240,7 @@ function isNoFalsePositive(
         DiagnosticCode.DUPLICATE_IDENTIFIER,
       ].includes(diagnostic.code as number)
     ) {
-      const node = tsDoc.svelteNodeAt(diagnostic.range.start);
+      const node = tsDoc.estrelaNodeAt(diagnostic.range.start);
       if (isAttributeName(node, "Element") || isEventHandler(node, "Element")) {
         return false;
       }
@@ -277,7 +277,7 @@ function isNoPugFalsePositive(
 function isNoUsedBeforeAssigned(
   diagnostic: Diagnostic,
   text: string,
-  tsDoc: SvelteDocumentSnapshot
+  tsDoc: EstrelaDocumentSnapshot
 ): boolean {
   if (diagnostic.code !== DiagnosticCode.USED_BEFORE_ASSIGNED) {
     return true;

@@ -3,7 +3,7 @@ import { TextDocumentContentChangeEvent } from "vscode-languageserver";
 import { Document, DocumentManager } from "../../lib/documents";
 import { LSConfigManager } from "../../ls-config";
 import { debounceSameArg, normalizePath, pathToUrl } from "../../utils";
-import { DocumentSnapshot, SvelteDocumentSnapshot } from "./DocumentSnapshot";
+import { DocumentSnapshot, EstrelaDocumentSnapshot } from "./DocumentSnapshot";
 import {
   getService,
   getServiceForTsconfig,
@@ -20,15 +20,15 @@ export class LSAndTSDocResolver {
    * @param workspaceUris
    * @param configManager
    * @param notifyExceedSizeLimit
-   * @param isSvelteCheck True, if used in the context of svelte-check
-   * @param tsconfigPath This should only be set via svelte-check. Makes sure all documents are resolved to that tsconfig. Has to be absolute.
+   * @param isEstrelaCheck True, if used in the context of estrela-check
+   * @param tsconfigPath This should only be set via estrela-check. Makes sure all documents are resolved to that tsconfig. Has to be absolute.
    */
   constructor(
     private readonly docManager: DocumentManager,
     private readonly workspaceUris: string[],
     private readonly configManager: LSConfigManager,
     private readonly notifyExceedSizeLimit?: () => void,
-    private readonly isSvelteCheck = false,
+    private readonly isEstrelaCheck = false,
     private readonly tsconfigPath?: string
   ) {
     const handleDocumentChange = (document: Document) => {
@@ -52,7 +52,7 @@ export class LSAndTSDocResolver {
   }
 
   /**
-   * Create a svelte document -> should only be invoked with svelte files.
+   * Create a estrela document -> should only be invoked with estrela files.
    */
   private createDocument = (fileName: string, content: string) => {
     const uri = pathToUrl(fileName);
@@ -68,10 +68,10 @@ export class LSAndTSDocResolver {
 
   private get lsDocumentContext(): LanguageServiceDocumentContext {
     return {
-      ambientTypesSource: this.isSvelteCheck ? "svelte-check" : "svelte2tsx",
+      ambientTypesSource: "estrela-check", // this.isSvelteCheck ? "svelte-check" : "svelte2tsx"
       createDocument: this.createDocument,
-      useNewTransformation: false, // this.configManager.getConfig().svelte.useNewTransformation,
-      transformOnTemplateError: !this.isSvelteCheck,
+      useNewTransformation: false, // this.configManager.getConfig().estrela.useNewTransformation,
+      transformOnTemplateError: !this.isEstrelaCheck,
       globalSnapshotsManager: this.globalSnapshotsManager,
       notifyExceedSizeLimit: this.notifyExceedSizeLimit,
     };
@@ -82,7 +82,7 @@ export class LSAndTSDocResolver {
   }
 
   async getLSAndTSDoc(document: Document): Promise<{
-    tsDoc: SvelteDocumentSnapshot;
+    tsDoc: EstrelaDocumentSnapshot;
     lang: ts.LanguageService;
     userPreferences: ts.UserPreferences;
   }> {
@@ -98,7 +98,7 @@ export class LSAndTSDocResolver {
    * the ts service it primarely belongs into.
    * The update is mirrored in all other services, too.
    */
-  async getSnapshot(document: Document): Promise<SvelteDocumentSnapshot>;
+  async getSnapshot(document: Document): Promise<EstrelaDocumentSnapshot>;
   async getSnapshot(pathOrDoc: string | Document): Promise<DocumentSnapshot>;
   async getSnapshot(pathOrDoc: string | Document) {
     const filePath =

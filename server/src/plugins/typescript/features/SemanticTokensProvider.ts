@@ -7,7 +7,7 @@ import {
 } from "vscode-languageserver";
 import { Document, mapRangeToOriginal } from "../../../lib/documents";
 import { SemanticTokensProvider } from "../../interfaces";
-import { SvelteSnapshotFragment } from "../DocumentSnapshot";
+import { EstrelaSnapshotFragment } from "../DocumentSnapshot";
 import { LSAndTSDocResolver } from "../LSAndTSDocResolver";
 import { convertToTextSpan } from "../utils";
 import { isInGeneratedCode } from "./utils";
@@ -112,7 +112,7 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
 
   private mapToOrigin(
     document: Document,
-    fragment: SvelteSnapshotFragment,
+    fragment: EstrelaSnapshotFragment,
     generatedOffset: number,
     generatedLength: number
   ):

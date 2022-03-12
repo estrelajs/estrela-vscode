@@ -21,16 +21,16 @@ import {
 } from "../../lib/documents";
 import { pathToUrl } from "../../utils";
 import { ConsumerDocumentMapper } from "./DocumentMapper";
-import { SvelteNode } from "./svelte-ast-utils";
+import { EstrelaNode } from "./estrela-ast-utils";
 import {
   getScriptKindFromAttributes,
   getScriptKindFromFileName,
-  isSvelteFilePath,
+  isEstrelaFilePath,
   getTsCheckComment,
 } from "./utils";
 
 /**
- * An error which occured while trying to parse/preprocess the svelte file contents.
+ * An error which occured while trying to parse/preprocess the estrela file contents.
  */
 export interface ParserError {
   message: string;
@@ -45,7 +45,7 @@ export const INITIAL_VERSION = 0;
 
 /**
  * A document snapshot suitable for the ts language service and the plugin.
- * Can be a svelte or ts/js file.
+ * Can be a estrela or ts/js file.
  */
 export interface DocumentSnapshot extends ts.IScriptSnapshot {
   version: number;
@@ -81,9 +81,9 @@ export interface SnapshotFragment extends DocumentMapper {
 }
 
 /**
- * Options that apply to svelte files.
+ * Options that apply to estrela files.
  */
-export interface SvelteSnapshotOptions {
+export interface EstrelaSnapshotOptions {
   transformOnTemplateError: boolean;
   useNewTransformation: boolean;
   typingsNamespace: string;
@@ -91,13 +91,13 @@ export interface SvelteSnapshotOptions {
 
 export namespace DocumentSnapshot {
   /**
-   * Returns a svelte snapshot from a svelte document.
-   * @param document the svelte document
-   * @param options options that apply to the svelte document
+   * Returns a estrela snapshot from a estrela document.
+   * @param document the estrela document
+   * @param options options that apply to the estrela document
    */
   export function fromDocument(
     document: Document,
-    options: SvelteSnapshotOptions
+    options: EstrelaSnapshotOptions
   ) {
     const {
       tsxMap,
@@ -107,9 +107,9 @@ export namespace DocumentSnapshot {
       parserError,
       nrPrependedLines,
       scriptKind,
-    } = preprocessSvelteFile(document, options);
+    } = preprocessEstrelaFile(document, options);
 
-    return new SvelteDocumentSnapshot(
+    return new EstrelaDocumentSnapshot(
       document,
       parserError,
       scriptKind,
@@ -122,47 +122,47 @@ export namespace DocumentSnapshot {
   }
 
   /**
-   * Returns a svelte or ts/js snapshot from a file path, depending on the file contents.
-   * @param filePath path to the js/ts/svelte file
-   * @param createDocument function that is used to create a document in case it's a Svelte file
-   * @param options options that apply in case it's a svelte file
+   * Returns a Estrela or ts/js snapshot from a file path, depending on the file contents.
+   * @param filePath path to the js/ts/estrela file
+   * @param createDocument function that is used to create a document in case it's a Estrela file
+   * @param options options that apply in case it's a Estrela file
    */
   export function fromFilePath(
     filePath: string,
     createDocument: (filePath: string, text: string) => Document,
-    options: SvelteSnapshotOptions
+    options: EstrelaSnapshotOptions
   ) {
-    if (isSvelteFilePath(filePath)) {
-      return DocumentSnapshot.fromSvelteFilePath(
+    if (isEstrelaFilePath(filePath)) {
+      return DocumentSnapshot.fromEstrelaFilePath(
         filePath,
         createDocument,
         options
       );
     } else {
-      return DocumentSnapshot.fromNonSvelteFilePath(filePath);
+      return DocumentSnapshot.fromNonEstrelaFilePath(filePath);
     }
   }
 
   /**
    * Returns a ts/js snapshot from a file path.
    * @param filePath path to the js/ts file
-   * @param options options that apply in case it's a svelte file
+   * @param options options that apply in case it's a estrela file
    */
-  export function fromNonSvelteFilePath(filePath: string) {
+  export function fromNonEstrelaFilePath(filePath: string) {
     const originalText = ts.sys.readFile(filePath) ?? "";
     return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText);
   }
 
   /**
-   * Returns a svelte snapshot from a file path.
-   * @param filePath path to the svelte file
+   * Returns a estrela snapshot from a file path.
+   * @param filePath path to the estrela file
    * @param createDocument function that is used to create a document
-   * @param options options that apply in case it's a svelte file
+   * @param options options that apply in case it's a estrela file
    */
-  export function fromSvelteFilePath(
+  export function fromEstrelaFilePath(
     filePath: string,
     createDocument: (filePath: string, text: string) => Document,
-    options: SvelteSnapshotOptions
+    options: EstrelaSnapshotOptions
   ) {
     const originalText = ts.sys.readFile(filePath) ?? "";
     return fromDocument(createDocument(filePath, originalText), options);
@@ -170,11 +170,11 @@ export namespace DocumentSnapshot {
 }
 
 /**
- * Tries to preprocess the svelte document and convert the contents into better analyzable js/ts(x) content.
+ * Tries to preprocess the estrela document and convert the contents into better analyzable js/ts(x) content.
  */
-function preprocessSvelteFile(
+function preprocessEstrelaFile(
   document: Document,
-  options: SvelteSnapshotOptions
+  options: EstrelaSnapshotOptions
 ) {
   let tsxMap: RawSourceMap | undefined;
   let parserError: ParserError | null = null;
@@ -255,10 +255,10 @@ function preprocessSvelteFile(
 }
 
 /**
- * A svelte document snapshot suitable for the ts language service and the plugin.
+ * A estrela document snapshot suitable for the ts language service and the plugin.
  */
-export class SvelteDocumentSnapshot implements DocumentSnapshot {
-  private fragment?: SvelteSnapshotFragment;
+export class EstrelaDocumentSnapshot implements DocumentSnapshot {
+  private fragment?: EstrelaSnapshotFragment;
 
   version = this.parent.version;
 
@@ -269,9 +269,8 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     private readonly text: string,
     private readonly nrPrependedLines: number,
     // private readonly exportedNames: IExportedNames,
-    private readonly tsxMap?: RawSourceMap
-  ) // private readonly htmlAst?: TemplateNode
-  {}
+    private readonly tsxMap?: RawSourceMap // private readonly htmlAst?: TemplateNode
+  ) {}
 
   get filePath() {
     return this.parent.getFilePath() || "";
@@ -306,7 +305,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     return false; // this.exportedNames.has(name);
   }
 
-  svelteNodeAt(postionOrOffset: number | Position): SvelteNode | null {
+  estrelaNodeAt(postionOrOffset: number | Position): EstrelaNode | null {
     return null;
     // if (!this.htmlAst) {
     //   return null;
@@ -316,15 +315,15 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     //     ? postionOrOffset
     //     : this.parent.offsetAt(postionOrOffset);
 
-    // let foundNode: SvelteNode | null = null;
+    // let foundNode: EstrelaNode | null = null;
     // walk(this.htmlAst, {
     //   enter(node) {
     //     // In case the offset is at a point where a node ends and a new one begins,
     //     // the node where the code ends is used. If this introduces problems, introduce
     //     // an affinity parameter to prefer the node where it ends/starts.
     //     if (
-    //       (node as SvelteNode).start > offset ||
-    //       (node as SvelteNode).end < offset
+    //       (node as EstrelaNode).start > offset ||
+    //       (node as EstrelaNode).end < offset
     //     ) {
     //       this.skip();
     //       return;
@@ -332,7 +331,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     //     const parent = foundNode;
     //     // Spread so the "parent" property isn't added to the original ast,
     //     // causing an infinite loop
-    //     foundNode = { ...node } as SvelteNode;
+    //     foundNode = { ...node } as EstrelaNode;
     //     if (parent) {
     //       foundNode.parent = parent;
     //     }
@@ -345,7 +344,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
   async getFragment() {
     if (!this.fragment) {
       const uri = pathToUrl(this.filePath);
-      this.fragment = new SvelteSnapshotFragment(
+      this.fragment = new EstrelaSnapshotFragment(
         await this.getMapper(uri),
         this.text,
         this.parent,
@@ -461,10 +460,10 @@ export class JSOrTSDocumentSnapshot
 }
 
 /**
- * The mapper to get from original svelte document positions
+ * The mapper to get from original estrela document positions
  * to generated snapshot positions and vice versa.
  */
-export class SvelteSnapshotFragment implements SnapshotFragment {
+export class EstrelaSnapshotFragment implements SnapshotFragment {
   private lineOffsets = getLineOffsets(this.text);
 
   constructor(

@@ -11,8 +11,8 @@ import { filterAsync, isNil, pathToUrl } from "../../../utils";
 import { RenameProvider } from "../../interfaces";
 import {
   SnapshotFragment,
-  SvelteSnapshotFragment,
-  SvelteDocumentSnapshot,
+  EstrelaSnapshotFragment,
+  EstrelaDocumentSnapshot,
 } from "../DocumentSnapshot";
 import { convertRange } from "../utils";
 import { LSAndTSDocResolver } from "../LSAndTSDocResolver";
@@ -20,13 +20,13 @@ import ts from "typescript";
 import { uniqWith, isEqual } from "lodash";
 import {
   isComponentAtPosition,
-  isAfterSvelte2TsxPropsReturn,
+  isAfterEstrela2TsxPropsReturn,
   isNoTextSpanInGeneratedCode,
   SnapshotFragmentMap,
   findContainingNode,
 } from "./utils";
 import { LSConfigManager } from "../../../ls-config";
-import { isAttributeName, isEventHandler } from "../svelte-ast-utils";
+import { isAttributeName, isEventHandler } from "../estrela-ast-utils";
 
 export class RenameProviderImpl implements RenameProvider {
   constructor(
@@ -144,7 +144,7 @@ export class RenameProviderImpl implements RenameProvider {
 
   private getRenameInfo(
     lang: ts.LanguageService,
-    tsDoc: SvelteDocumentSnapshot,
+    tsDoc: EstrelaDocumentSnapshot,
     doc: Document,
     originalPosition: Position,
     generatedOffset: number
@@ -155,7 +155,7 @@ export class RenameProviderImpl implements RenameProvider {
     fullDisplayName: string;
     triggerSpan: { start: number; length: number };
   } | null {
-    // Don't allow renames in error-state, because then there is no generated svelte2tsx-code
+    // Don't allow renames in error-state, because then there is no generated estrela2tsx-code
     // and rename cannot work
     if (tsDoc.parserError) {
       return null;
@@ -174,12 +174,12 @@ export class RenameProviderImpl implements RenameProvider {
       return null;
     }
 
-    const svelteNode = tsDoc.svelteNodeAt(originalPosition);
+    const estrelaNode = tsDoc.estrelaNodeAt(originalPosition);
     if (
-      // this.configManager.getConfig().svelte.useNewTransformation &&
+      // this.configManager.getConfig().estrela.useNewTransformation &&
       isInHTMLTagRange(doc.html, doc.offsetAt(originalPosition)) ||
-      isAttributeName(svelteNode, "Element") ||
-      isEventHandler(svelteNode, "Element")
+      isAttributeName(estrelaNode, "Element") ||
+      isEventHandler(estrelaNode, "Element")
     ) {
       return null;
     }
@@ -196,8 +196,8 @@ export class RenameProviderImpl implements RenameProvider {
    */
   private async getAdditionLocationsForRenameOfPropInsideComponentWithProp(
     document: Document,
-    tsDoc: SvelteDocumentSnapshot,
-    fragment: SvelteSnapshotFragment,
+    tsDoc: EstrelaDocumentSnapshot,
+    fragment: EstrelaSnapshotFragment,
     position: Position,
     convertedRenameLocations: Array<ts.RenameLocation & { range: Range }>,
     fragments: SnapshotFragmentMap,
@@ -233,7 +233,7 @@ export class RenameProviderImpl implements RenameProvider {
       ":",
       updatePropLocation.textSpan.start
     );
-    // This requires svelte2tsx to have the properties written down like `return props: {bla: bla}`.
+    // This requires estrela2tsx to have the properties written down like `return props: {bla: bla}`.
     // It would not work for `return props: {bla}` because then typescript would do a rename of `{bla: renamed}`,
     // so other locations would not be affected.
     const replacementsForProp = (
@@ -248,7 +248,7 @@ export class RenameProviderImpl implements RenameProvider {
         // filter out all renames inside the component except the prop rename,
         // because the others were done before and then would show up twice, making a wrong rename.
         rename.fileName !== updatePropLocation.fileName ||
-        this.isInSvelte2TsxPropLine(fragment, rename)
+        this.isInEstrela2TsxPropLine(fragment, rename)
     );
     return await this.mapAndFilterRenameLocations(
       replacementsForProp,
@@ -259,7 +259,7 @@ export class RenameProviderImpl implements RenameProvider {
   /**
    * If user renames prop of component A inside component B,
    * we need to handle the rename of the prop of A ourselves.
-   * Reason: the rename will rename the prop in the computed svelte2tsx code,
+   * Reason: the rename will rename the prop in the computed estrela2tsx code,
    * but not the `export let X` code in the original because the
    * rename does not propagate further than the prop.
    * This additional logic/propagation is done in this method.
@@ -278,7 +278,7 @@ export class RenameProviderImpl implements RenameProvider {
       return [];
     }
     // Find generated `export let`
-    const doc = <SvelteSnapshotFragment>(
+    const doc = <EstrelaSnapshotFragment>(
       fragments.getFragment(updatePropLocation.fileName)
     );
     const match = this.matchGeneratedExportLet(doc, updatePropLocation);
@@ -302,13 +302,13 @@ export class RenameProviderImpl implements RenameProvider {
     );
   }
 
-  // --------> svelte2tsx?
+  // --------> estrela2tsx?
   private matchGeneratedExportLet(
-    fragment: SvelteSnapshotFragment,
+    fragment: EstrelaSnapshotFragment,
     updatePropLocation: ts.RenameLocation
   ) {
     const regex = new RegExp(
-      // no 'export let', only 'let', because that's what it's translated to in svelte2tsx
+      // no 'export let', only 'let', because that's what it's translated to in estrela2tsx
       `\\s+let\\s+(${fragment.text.substr(
         updatePropLocation.textSpan.start,
         updatePropLocation.textSpan.length
@@ -329,26 +329,26 @@ export class RenameProviderImpl implements RenameProvider {
       }
 
       const fragment = fragments.getFragment(loc.fileName);
-      // Props are in svelte snapshots only
-      if (!(fragment instanceof SvelteSnapshotFragment)) {
+      // Props are in estrela snapshots only
+      if (!(fragment instanceof EstrelaSnapshotFragment)) {
         return false;
       }
 
-      return this.isInSvelte2TsxPropLine(fragment, loc);
+      return this.isInEstrela2TsxPropLine(fragment, loc);
     });
   }
 
-  // --------> svelte2tsx?
-  private isInSvelte2TsxPropLine(
-    fragment: SvelteSnapshotFragment,
+  // --------> estrela2tsx?
+  private isInEstrela2TsxPropLine(
+    fragment: EstrelaSnapshotFragment,
     loc: ts.RenameLocation
   ) {
-    return isAfterSvelte2TsxPropsReturn(fragment.text, loc.textSpan.start);
+    return isAfterEstrela2TsxPropsReturn(fragment.text, loc.textSpan.start);
   }
 
   /**
    * The rename locations the ts language services hands back are relative to the
-   * svelte2tsx generated code -> map it back to the original document positions.
+   * estrela2tsx generated code -> map it back to the original document positions.
    * Some of those positions could be unmapped (line=-1), these are handled elsewhere.
    * Also filter out wrong renames.
    */
@@ -376,19 +376,19 @@ export class RenameProviderImpl implements RenameProvider {
   ): Promise<Array<ts.RenameLocation & { range: Range }>> {
     return filterAsync(mappedLocations, async (loc) => {
       const snapshot = await this.getSnapshot(loc.fileName);
-      if (!(snapshot instanceof SvelteDocumentSnapshot)) {
+      if (!(snapshot instanceof EstrelaDocumentSnapshot)) {
         return true;
       }
 
       const content = snapshot.getText(0, snapshot.getLength());
-      // When the user renames a Svelte component, ts will also want to rename
-      // `__sveltets_1_instanceOf(TheComponentToRename)` or
-      // `__sveltets_1_ensureType(TheComponentToRename,..`. Prevent that.
+      // When the user renames a Estrela component, ts will also want to rename
+      // `__estrelats_1_instanceOf(TheComponentToRename)` or
+      // `__estrelats_1_ensureType(TheComponentToRename,..`. Prevent that.
       // Additionally, we cannot rename the hidden variable containing the store value
       return (
-        notPrecededBy("__sveltets_1_instanceOf(") &&
-        notPrecededBy("__sveltets_1_ensureType(") && // no longer necessary for new transformation
-        notPrecededBy("= __sveltets_1_store_get(")
+        notPrecededBy("__estrelats_1_instanceOf(") &&
+        notPrecededBy("__estrelats_1_ensureType(") && // no longer necessary for new transformation
+        notPrecededBy("= __estrelats_1_store_get(")
       );
 
       function notPrecededBy(str: string) {
@@ -404,14 +404,14 @@ export class RenameProviderImpl implements RenameProvider {
     doc: SnapshotFragment,
     textSpan: ts.TextSpan
   ): Range {
-    // We need to work around a current svelte2tsx limitation: Replacements and
+    // We need to work around a current estrela2tsx limitation: Replacements and
     // source mapping is done in such a way that sometimes the end of the range is unmapped
     // and the index of the last character is returned instead (which is one less).
     // Most of the time this is not much of a problem, but in the context of renaming, it is.
     // We work around that by adding +1 to the end, if necessary.
     // This can be done because
     // 1. we know renames can only ever occur in one line
-    // 2. the generated svelte2tsx code will not modify variable names, so we know
+    // 2. the generated estrela2tsx code will not modify variable names, so we know
     //    the original range should be the same length as the textSpan's length
     const range = mapRangeToOriginal(doc, convertRange(doc, textSpan));
     if (range.end.character - range.start.character < textSpan.length) {
@@ -421,8 +421,8 @@ export class RenameProviderImpl implements RenameProvider {
   }
 
   private getVariableAtPosition(
-    tsDoc: SvelteDocumentSnapshot,
-    fragment: SvelteSnapshotFragment,
+    tsDoc: EstrelaDocumentSnapshot,
+    fragment: EstrelaSnapshotFragment,
     lang: ts.LanguageService,
     position: Position
   ) {
@@ -462,13 +462,13 @@ export class RenameProviderImpl implements RenameProvider {
       }
 
       const fragment = fragments.getFragment(location.fileName);
-      if (!(fragment instanceof SvelteSnapshotFragment)) {
+      if (!(fragment instanceof EstrelaSnapshotFragment)) {
         return location;
       }
 
       const { originalText, parent } = fragment;
 
-      // if (this.configManager.getConfig().svelte.useNewTransformation) {
+      // if (this.configManager.getConfig().estrela.useNewTransformation) {
       //   let prefixText = location.prefixText?.trimRight();
       //   if (!prefixText || prefixText.slice(-1) !== ":") {
       //     return location;

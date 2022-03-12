@@ -78,7 +78,7 @@ import {
   isAttributeName,
   isAttributeShorthand,
   isEventHandler,
-} from "./svelte-ast-utils";
+} from "./estrela-ast-utils";
 import {
   convertToLocationRange,
   getScriptKindFromFileName,
@@ -221,7 +221,7 @@ export class TypeScriptPlugin
         symbol.location.range.start.line < 0 ||
         symbol.location.range.end.line < 0 ||
         isZeroLengthRange(symbol.location.range) ||
-        symbol.name.startsWith("__sveltets_")
+        symbol.name.startsWith("__estrelats_")
       ) {
         continue;
       }
@@ -240,7 +240,7 @@ export class TypeScriptPlugin
           // This is the "props" of a generated component constructor
           continue;
         }
-        const node = tsDoc.svelteNodeAt(symbol.location.range.start);
+        const node = tsDoc.estrelaNodeAt(symbol.location.range.start);
         if (
           (node && (isAttributeName(node) || isAttributeShorthand(node))) ||
           isEventHandler(node)
@@ -377,7 +377,7 @@ export class TypeScriptPlugin
         const { fragment, snapshot } = await docs.retrieve(def.fileName);
 
         if (
-          !def.fileName.endsWith("svelte-shims.d.ts") &&
+          !def.fileName.endsWith("estrela-shims.d.ts") &&
           isNoTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)
         ) {
           return LocationLink.create(
@@ -448,8 +448,8 @@ export class TypeScriptPlugin
   async updateImports(fileRename: FileRename): Promise<WorkspaceEdit | null> {
     if (
       !(
-        this.configManager.enabled("svelte.enable") &&
-        this.configManager.enabled("svelte.rename.enable")
+        this.configManager.enabled("estrela.enable") &&
+        this.configManager.enabled("estrela.rename.enable")
       )
     ) {
       return null;
@@ -488,7 +488,7 @@ export class TypeScriptPlugin
 
       const scriptKind = getScriptKindFromFileName(fileName);
       if (scriptKind === ts.ScriptKind.Unknown) {
-        // We don't deal with svelte files here
+        // We don't deal with estrela files here
         continue;
       }
 

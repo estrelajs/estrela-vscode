@@ -51,7 +51,7 @@ export class GlobalSnapshotsManager {
       this.emitter.emit("change", fileName, previousSnapshot);
       return previousSnapshot;
     } else {
-      const newSnapshot = DocumentSnapshot.fromNonSvelteFilePath(fileName);
+      const newSnapshot = DocumentSnapshot.fromNonEstrelaFilePath(fileName);
 
       if (previousSnapshot) {
         newSnapshot.version = previousSnapshot.version + 1;
@@ -204,8 +204,8 @@ export class SnapshotManager {
       Logger.log(
         "SnapshotManager File Statistics:\n" +
           `Project files: ${projectFiles.length}\n` +
-          `Svelte files: ${
-            allFiles.filter((name) => name.endsWith(".svelte")).length
+          `Estrela files: ${
+            allFiles.filter((name) => name.endsWith(".estrela")).length
           }\n` +
           `From node_modules: ${
             allFiles.filter((name) => name.includes("node_modules")).length
@@ -216,4 +216,4 @@ export class SnapshotManager {
   }
 }
 
-export const ignoredBuildDirectories = ["__sapper__", ".svelte-kit"];
+export const ignoredBuildDirectories = ["__sapper__", ".estrela-kit"];

@@ -31,13 +31,13 @@ import {
 } from "../../interfaces";
 import { ComponentPartInfo } from "../ComponentInfoProvider";
 import {
-  SvelteDocumentSnapshot,
-  SvelteSnapshotFragment,
+  EstrelaDocumentSnapshot,
+  EstrelaSnapshotFragment,
 } from "../DocumentSnapshot";
 import { LSAndTSDocResolver } from "../LSAndTSDocResolver";
 import { getMarkdownDocumentation } from "../previewer";
 import {
-  changeSvelteComponentName,
+  changeComponentName,
   convertRange,
   getCommitCharactersForScriptElement,
   isInScript,
@@ -163,12 +163,12 @@ export class CompletionsProviderImpl
       return getJsDocTemplateCompletion(fragment, lang, filePath, offset);
     }
 
-    const svelteNode = tsDoc.svelteNodeAt(originalOffset);
+    const estrelaNode = tsDoc.estrelaNodeAt(originalOffset);
     if (
       // Cursor is somewhere in regular HTML text
-      (svelteNode?.type === "Text" &&
+      (estrelaNode?.type === "Text" &&
         ["Element", "InlineComponent", "Fragment", "SlotTemplate"].includes(
-          svelteNode.parent?.type as any
+          estrelaNode.parent?.type as any
         )) ||
       // Cursor is at <div>|</div> in which case there's no TextNode inbetween
       document.getText().substring(originalOffset - 1, originalOffset + 2) ===
@@ -283,7 +283,7 @@ export class CompletionsProviderImpl
   private async getEventAndSlotLetCompletions(
     lang: ts.LanguageService,
     doc: Document,
-    tsDoc: SvelteDocumentSnapshot,
+    tsDoc: EstrelaDocumentSnapshot,
     originalPosition: Position,
     wordRange: { start: number; end: number }
   ): Promise<Array<AppCompletionItem<CompletionEntryWithIdentifer>>> {
@@ -325,7 +325,7 @@ export class CompletionsProviderImpl
   }
 
   private toCompletionItem(
-    fragment: SvelteSnapshotFragment,
+    fragment: EstrelaSnapshotFragment,
     comp: ts.CompletionEntry,
     uri: string,
     position: Position,
@@ -339,12 +339,12 @@ export class CompletionsProviderImpl
       return null;
     }
 
-    const { label, insertText, isSvelteComp, replacementSpan } =
+    const { label, insertText, isEstrelaComp, replacementSpan } =
       completionLabelAndInsert;
-    // TS may suggest another Svelte component even if there already exists an import
-    // with the same name, because under the hood every Svelte component is postfixed
-    // with `__SvelteComponent`. In this case, filter out this completion by returning null.
-    if (isSvelteComp && existingImports.has(label)) {
+    // TS may suggest another Estrela component even if there already exists an import
+    // with the same name, because under the hood every Estrela component is postfixed
+    // with `__EstrelaComponent`. In this case, filter out this completion by returning null.
+    if (isEstrelaComp && existingImports.has(label)) {
       return null;
     }
     const textEdit = replacementSpan
@@ -359,9 +359,9 @@ export class CompletionsProviderImpl
       insertText,
       kind: scriptElementKindToCompletionItemKind(comp.kind),
       commitCharacters: getCommitCharactersForScriptElement(comp.kind),
-      // Make sure svelte component takes precedence
-      sortText: isSvelteComp ? "-1" : comp.sortText,
-      preselect: isSvelteComp ? true : comp.isRecommended,
+      // Make sure estrela component takes precedence
+      sortText: isEstrelaComp ? "-1" : comp.sortText,
+      preselect: isEstrelaComp ? true : comp.isRecommended,
       textEdit,
       // pass essential data for resolving completion
       data: {
@@ -373,17 +373,17 @@ export class CompletionsProviderImpl
   }
 
   private getCompletionLabelAndInsert(
-    fragment: SvelteSnapshotFragment,
+    fragment: EstrelaSnapshotFragment,
     comp: ts.CompletionEntry
   ) {
     let { name, insertText, kindModifiers } = comp;
     const isScriptElement = comp.kind === ts.ScriptElementKind.scriptElement;
     const hasModifier = Boolean(comp.kindModifiers);
-    const isSvelteComp = this.isSvelteComponentImport(name);
-    if (isSvelteComp) {
-      name = changeSvelteComponentName(name);
+    const isEstrelaComp = this.isEstrelaComponentImport(name);
+    if (isEstrelaComp) {
+      name = changeComponentName(name);
 
-      if (this.isExistingSvelteComponentImport(fragment, name, comp.source)) {
+      if (this.isExistingEstrelaComponentImport(fragment, name, comp.source)) {
         return null;
       }
     }
@@ -396,34 +396,32 @@ export class CompletionsProviderImpl
       return {
         insertText: name,
         label,
-        isSvelteComp,
+        isEstrelaComp,
       };
     }
 
     if (comp.replacementSpan) {
       return {
         label: name,
-        isSvelteComp,
-        insertText: insertText
-          ? changeSvelteComponentName(insertText)
-          : undefined,
+        isEstrelaComp,
+        insertText: insertText ? changeComponentName(insertText) : undefined,
         replacementSpan: comp.replacementSpan,
       };
     }
 
     return {
       label: name,
-      isSvelteComp,
+      isEstrelaComp,
     };
   }
 
-  private isExistingSvelteComponentImport(
-    fragment: SvelteSnapshotFragment,
+  private isExistingEstrelaComponentImport(
+    fragment: EstrelaSnapshotFragment,
     name: string,
     source?: string
   ): boolean {
     const importStatement = new RegExp(
-      `import ${name} from ["'\`][\\s\\S]+\\.svelte["'\`]`
+      `import ${name} from ["'\`][\\s\\S]+\\.estrela["'\`]`
     );
     return !!source && !!fragment.text.match(importStatement);
   }
@@ -480,10 +478,10 @@ export class CompletionsProviderImpl
 
   /**
    * TypeScript throws a debug assertion error if the importModuleSpecifierEnding config is
-   * 'js' and there's an unknown file extension - which is the case for `.svelte`. Therefore
+   * 'js' and there's an unknown file extension - which is the case for `.estrela`. Therefore
    * rewrite the importModuleSpecifierEnding for this case to silence the error.
    */
-  fixUserPreferencesForSvelteComponentImport(
+  fixUserPreferencesForEstrelaComponentImport(
     userPreferences: ts.UserPreferences
   ): ts.UserPreferences {
     if (userPreferences.importModuleSpecifierEnding === "js") {
@@ -512,8 +510,8 @@ export class CompletionsProviderImpl
     }
 
     const fragment = await tsDoc.getFragment();
-    const errorPreventingUserPreferences = comp.source?.endsWith(".svelte")
-      ? this.fixUserPreferencesForSvelteComponentImport(userPreferences)
+    const errorPreventingUserPreferences = comp.source?.endsWith(".estrela")
+      ? this.fixUserPreferencesForEstrelaComponentImport(userPreferences)
       : userPreferences;
 
     const detail = lang.getCompletionEntryDetails(
@@ -569,7 +567,7 @@ export class CompletionsProviderImpl
       displayParts,
       tags,
     } = compDetail;
-    let detail: string = changeSvelteComponentName(
+    let detail: string = changeComponentName(
       ts.displayPartsToString(displayParts)
     );
 
@@ -591,7 +589,7 @@ export class CompletionsProviderImpl
 
   private codeActionChangesToTextEdit(
     doc: Document,
-    fragment: SvelteSnapshotFragment,
+    fragment: EstrelaSnapshotFragment,
     changes: ts.FileTextChanges,
     isImport: boolean,
     originalTriggerPosition: Position
@@ -609,7 +607,7 @@ export class CompletionsProviderImpl
 
   codeActionChangeToTextEdit(
     doc: Document,
-    fragment: SvelteSnapshotFragment,
+    fragment: EstrelaSnapshotFragment,
     change: ts.TextChange,
     isImport: boolean,
     originalTriggerPosition: Position
@@ -622,7 +620,7 @@ export class CompletionsProviderImpl
     const scriptTagInfo = fragment.scriptInfo || fragment.moduleScriptInfo;
     if (!scriptTagInfo) {
       // no script tag defined yet, add it.
-      // const lang = this.configManager.getConfig().svelte.defaultScriptLanguage;
+      // const lang = this.configManager.getConfig().estrela.defaultScriptLanguage;
       // const scriptLang = lang === "none" ? "" : ` lang="${lang}"`;
       const scriptLang = ' lang="ts"';
 
@@ -681,7 +679,7 @@ export class CompletionsProviderImpl
   }
 
   private mapRangeForNewImport(
-    fragment: SvelteSnapshotFragment,
+    fragment: EstrelaSnapshotFragment,
     virtualRange: Range
   ) {
     const sourceMappableRange = this.offsetLinesAndMovetoStartOfLine(
@@ -702,18 +700,18 @@ export class CompletionsProviderImpl
     );
   }
 
-  private isSvelteComponentImport(className: string) {
-    return className.endsWith("__SvelteComponent_");
+  private isEstrelaComponentImport(className: string) {
+    return className.endsWith("__EstrelaComponent_");
   }
 
   private changeComponentImport(
     importText: string,
     actionTriggeredInScript: boolean
   ) {
-    const changedName = changeSvelteComponentName(importText);
+    const changedName = changeComponentName(importText);
     if (importText !== changedName || !actionTriggeredInScript) {
       // For some reason, TS sometimes adds the `type` modifier. Remove it
-      // in case of Svelte component imports or if import triggered from markup.
+      // in case of Estrela component imports or if import triggered from markup.
       return changedName.replace(" type ", " ");
     }
 
@@ -732,39 +730,40 @@ const beginOfDocumentRange = Range.create(
 const scriptImportRegex =
   /\bimport\s+{([^}]*?)}\s+?from\s+['"`].+?['"`]|\bimport\s+(\w+?)\s+from\s+['"`].+?['"`]/g;
 
-// Type definitions from svelte-shims.d.ts that shouldn't appear in completion suggestions
+// Type definitions from estrela-shims.d.ts that shouldn't appear in completion suggestions
 // because they are meant to be used "behind the scenes"
-const svelte2tsxTypes = new Set([
-  "Svelte2TsxComponent",
-  "Svelte2TsxComponentConstructorParameters",
-  "SvelteComponentConstructor",
-  "SvelteActionReturnType",
-  "SvelteTransitionConfig",
-  "SvelteTransitionReturnType",
-  "SvelteAnimationReturnType",
-  "SvelteWithOptionalProps",
-  "SvelteAllProps",
-  "SveltePropsAnyFallback",
-  "SvelteSlotsAnyFallback",
-  "SvelteRestProps",
-  "SvelteSlots",
-  "SvelteStore",
+const estrela2tsxTypes = new Set([
+  "Estrela2TsxComponent",
+  "Estrela2TsxComponentConstructorParameters",
+  "EstrelaComponentConstructor",
+  "EstrelaActionReturnType",
+  "EstrelaTransitionConfig",
+  "EstrelaTransitionReturnType",
+  "EstrelaAnimationReturnType",
+  "EstrelaWithOptionalProps",
+  "EstrelaAllProps",
+  "EstrelaPropsAnyFallback",
+  "EstrelaSlotsAnyFallback",
+  "EstrelaRestProps",
+  "EstrelaSlots",
+  "EstrelaStore",
 ]);
 
 function isValidCompletion(
   document: Document,
   position: Position
 ): (value: ts.CompletionEntry) => boolean {
-  const isNoSvelte2tsxCompletion = (value: ts.CompletionEntry) =>
+  const isNoEstrela2tsxCompletion = (value: ts.CompletionEntry) =>
     value.kindModifiers !== "declare" ||
-    (!value.name.startsWith("__sveltets_") && !svelte2tsxTypes.has(value.name));
+    (!value.name.startsWith("__estrelats_") &&
+      !estrela2tsxTypes.has(value.name));
 
   const isCompletionInHTMLStartTag = !!getNodeIfIsInHTMLStartTag(
     document.html,
     document.offsetAt(position)
   );
   if (!isCompletionInHTMLStartTag) {
-    return isNoSvelte2tsxCompletion;
+    return isNoEstrela2tsxCompletion;
   }
   // TODO with the new transformation this is ts.ScriptElementKind.memberVariableElement
   // which is also true for all properties of any other object -> how reliably filter this out?
@@ -775,5 +774,5 @@ function isValidCompletion(
     // attribute suggestions, and for events they are wrong (onX instead of on:X).
     // Therefore filter them out.
     value.kind !== ts.ScriptElementKind.jsxAttribute &&
-    isNoSvelte2tsxCompletion(value);
+    isNoEstrela2tsxCompletion(value);
 }
