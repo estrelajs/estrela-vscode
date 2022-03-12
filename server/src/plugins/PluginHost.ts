@@ -82,8 +82,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         document.getFilePath()?.includes("\\src\\node_modules\\")
       )
     ) {
-      // Don't return diagnostics for files inside node_modules. These are considered read-only (cannot be changed)
-      // and in case of svelte-check they would pollute/skew the output
       return [];
     }
 

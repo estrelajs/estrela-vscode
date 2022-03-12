@@ -10,7 +10,7 @@ import { normalizeUri } from "../../utils";
 export type DocumentEvent = "documentOpen" | "documentChange" | "documentClose";
 
 /**
- * Manages svelte documents
+ * Manages estrela documents
  */
 export class DocumentManager {
   private emitter = new EventEmitter();

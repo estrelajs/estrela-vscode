@@ -10,7 +10,7 @@ import { parseHtml } from "./parseHtml";
 import { HTMLDocument } from "vscode-html-languageservice";
 
 /**
- * Represents a text document contains a svelte component.
+ * Represents a text document contains a estrela component.
  */
 export class Document extends WritableDocument {
   languageId = "estrela";

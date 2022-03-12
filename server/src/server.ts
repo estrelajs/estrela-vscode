@@ -40,11 +40,6 @@ connection.onInitialize((evt) => {
   }
 
   // get configurations
-  configManager.update(
-    evt.initializationOptions?.configuration?.svelte?.plugin ??
-      evt.initializationOptions?.config ??
-      {}
-  );
   configManager.updateTsJsUserPreferences(
     evt.initializationOptions?.configuration ??
       evt.initializationOptions?.typescriptConfig ??
@@ -132,7 +127,6 @@ connection.onDidChangeTextDocument((evt) => {
 
 // configurations listener
 connection.onDidChangeConfiguration(({ settings }) => {
-  configManager.update(settings.svelte?.plugin);
   configManager.updateTsJsUserPreferences(settings);
   configManager.updateEmmetConfig(settings.emmet);
   configManager.updatePrettierConfig(settings.prettier);

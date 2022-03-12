@@ -50,8 +50,8 @@ export function normalizeUri(uri: string): string {
 }
 
 /**
- * Given a path like foo/bar or foo/bar.svelte , returns its last path
- * (bar or bar.svelte in this example).
+ * Given a path like foo/bar or foo/bar.estrela , returns its last path
+ * (bar or bar.estrela in this example).
  */
 export function getLastPartOfPath(path: string): string {
   return path.replace(/\\/g, "/").split("/").pop() || "";
@@ -275,10 +275,10 @@ export function getIndent(text: string) {
 /**
  *
  * The html language service is case insensitive, and would provide
- * hover/ completion info for Svelte components like `Option` which have
+ * hover/ completion info for estrela components like `Option` which have
  * the same name like a html tag.
  *
- * Also, svelte directives like action and event modifier only work
+ * Also, estrela directives like action and event modifier only work
  * with element not component
  */
 export function possiblyComponent(node: Node): boolean {
