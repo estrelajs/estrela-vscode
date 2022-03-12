@@ -22,8 +22,11 @@ import {
   AppCompletionItem,
   CSSPlugin,
   HTMLPlugin,
+  LSAndTSDocResolver,
   PluginHost,
+  TypeScriptPlugin,
 } from "./plugins";
+import { normalizeUri } from "./utils";
 namespace TagCloseRequest {
   export const type: RequestType<
     TextDocumentPositionParams,
@@ -95,6 +98,17 @@ connection.onInitialize((evt) => {
   });
   pluginHost.register(new HTMLPlugin(docManager, configManager));
   pluginHost.register(new CSSPlugin(docManager, configManager));
+  pluginHost.register(
+    new TypeScriptPlugin(
+      configManager,
+      new LSAndTSDocResolver(
+        docManager,
+        workspaceUris.map(normalizeUri),
+        configManager,
+        notifyTsServiceExceedSizeLimit
+      )
+    )
+  );
 
   const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
 
@@ -163,6 +177,16 @@ connection.onInitialize((evt) => {
     },
   };
 });
+
+function notifyTsServiceExceedSizeLimit() {
+  connection?.sendNotification(ShowMessageNotification.type, {
+    message:
+      "Estrela language server detected a large amount of JS/Svelte files. " +
+      "To enable project-wide JavaScript/TypeScript language features for Estrela files," +
+      "exclude large folders in the tsconfig.json or jsconfig.json with source files that you do not work on.",
+    type: MessageType.Warning,
+  });
+}
 
 // documents listeners
 connection.onDidOpenTextDocument((evt) => {
