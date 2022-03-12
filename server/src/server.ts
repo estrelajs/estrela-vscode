@@ -7,8 +7,7 @@ import {
 import { Document, DocumentManager } from "./lib/documents";
 import { Logger } from "./logger";
 import { LSConfigManager } from "./ls-config";
-import { PluginHost } from "./plugins";
-import { HTMLPlugin } from "./plugins/html/HTMLPlugin";
+import { CSSPlugin, HTMLPlugin, PluginHost } from "./plugins";
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -77,6 +76,7 @@ connection.onInitialize((evt) => {
       !!evt.capabilities.textDocument?.definition?.linkSupport,
   });
   pluginHost.register(new HTMLPlugin(docManager, configManager));
+  pluginHost.register(new CSSPlugin(docManager, configManager));
 
   return {
     capabilities: {

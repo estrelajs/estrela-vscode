@@ -6,6 +6,9 @@
     "node": "*"
   },
   "dependencies": {
+    "chokidar": "^3.5.3",
+    "source-map": "^0.7.3",
+    "vscode-css-languageservice": "^5.1.13",
     "vscode-emmet-helper": "^2.6.4",
     "vscode-html-languageservice": "^3.0.3",
     "vscode-languageserver": "^7.0.0",

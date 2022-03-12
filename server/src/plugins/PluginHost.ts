@@ -29,7 +29,7 @@ import {
 } from "vscode-languageserver";
 import { DocumentManager, getNodeIfIsInHTMLStartTag } from "../lib/documents";
 import { Logger } from "../logger";
-import { isNotNullOrUndefined, regexLastIndexOf } from "../utils";
+import { isNil, regexLastIndexOf } from "../utils";
 import {
   AppCompletionItem,
   FileRename,
@@ -131,7 +131,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
           return { result: result as CompletionList, plugin: plugin.__name };
         }
       })
-    ).then((completions) => completions.filter(isNotNullOrUndefined));
+    ).then((completions) => completions.filter(isNil));
 
     const html = completions.find((completion) => completion.plugin === "html");
     const ts = completions.find((completion) => completion.plugin === "ts");

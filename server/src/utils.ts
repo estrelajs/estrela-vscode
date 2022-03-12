@@ -57,14 +57,6 @@ export function getLastPartOfPath(path: string): string {
   return path.replace(/\\/g, "/").split("/").pop() || "";
 }
 
-export function flatten<T>(arr: Array<T | T[]>): T[] {
-  return arr.reduce(
-    (all: T[], item) =>
-      Array.isArray(item) ? [...all, ...item] : [...all, item],
-    []
-  );
-}
-
 /**
  * Map or keep original (passthrough) if the mapper returns undefined.
  */
@@ -131,7 +123,7 @@ export function isPositionEqual(
   );
 }
 
-export function isNotNullOrUndefined<T>(val: T | undefined | null): val is T {
+export function isNil<T>(val: T | undefined | null): val is T {
   return val !== undefined && val !== null;
 }
 
@@ -140,7 +132,7 @@ export function isNotNullOrUndefined<T>(val: T | undefined | null): val is T {
  * a second function determines it should.
  *
  * @param fn The function with it's argument
- * @param determineIfSame The function which determines if the previous invocation should be canceld or not
+ * @param shouldCancelPrevious The function which determines if the previous invocation should be canceld or not
  * @param miliseconds Number of miliseconds to debounce
  */
 export function debounceSameArg<T>(
