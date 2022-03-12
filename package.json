@@ -50,11 +50,11 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "cd client && yarn && cd .. && yarn compile",
+    "vscode:prepublish": "cd client && npm install && cd .. && npm run compile",
     "compile": "tsc -b",
     "watch": "tsc -b -w",
     "lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
-    "postinstall": "cd client && yarn && cd ../server && yarn && cd .."
+    "postinstall": "cd client && npm install && cd ../server && npm install && cd .."
   },
   "devDependencies": {
     "@types/mocha": "^9.1.0",
