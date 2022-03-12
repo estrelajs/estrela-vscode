@@ -86,13 +86,15 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     }
 
     return (
-      await this.execute<Diagnostic[]>(
-        "getDiagnostics",
-        [document],
-        ExecuteMode.Collect,
-        "high"
-      )
-    ).flat();
+      (
+        await this.execute<Diagnostic[]>(
+          "getDiagnostics",
+          [document],
+          ExecuteMode.Collect,
+          "high"
+        )
+      )?.flat() ?? []
+    );
   }
 
   async doHover(
@@ -220,13 +222,15 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     const document = this.getDocument(textDocument.uri);
 
     return (
-      await this.execute<TextEdit[]>(
-        "formatDocument",
-        [document, options],
-        ExecuteMode.Collect,
-        "high"
-      )
-    ).flat();
+      (
+        await this.execute<TextEdit[]>(
+          "formatDocument",
+          [document, options],
+          ExecuteMode.Collect,
+          "high"
+        )
+      )?.flat() ?? []
+    );
   }
 
   async doTagComplete(
@@ -249,13 +253,15 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     const document = this.getDocument(textDocument.uri);
 
     return (
-      await this.execute<ColorInformation[]>(
-        "getDocumentColors",
-        [document],
-        ExecuteMode.Collect,
-        "low"
-      )
-    ).flat();
+      (
+        await this.execute<ColorInformation[]>(
+          "getDocumentColors",
+          [document],
+          ExecuteMode.Collect,
+          "low"
+        )
+      )?.flat() ?? []
+    );
   }
 
   async getColorPresentations(
@@ -266,13 +272,15 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     const document = this.getDocument(textDocument.uri);
 
     return (
-      await this.execute<ColorPresentation[]>(
-        "getColorPresentations",
-        [document, range, color],
-        ExecuteMode.Collect,
-        "high"
-      )
-    ).flat();
+      (
+        await this.execute<ColorPresentation[]>(
+          "getColorPresentations",
+          [document, range, color],
+          ExecuteMode.Collect,
+          "high"
+        )
+      )?.flat() ?? []
+    );
   }
 
   async getDocumentSymbols(
@@ -282,13 +290,15 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     const document = this.getDocument(textDocument.uri);
 
     return (
-      await this.execute<SymbolInformation[]>(
-        "getDocumentSymbols",
-        [document, cancellationToken],
-        ExecuteMode.Collect,
-        "low"
-      )
-    ).flat();
+      (
+        await this.execute<SymbolInformation[]>(
+          "getDocumentSymbols",
+          [document, cancellationToken],
+          ExecuteMode.Collect,
+          "low"
+        )
+      )?.flat() ?? []
+    );
   }
 
   async getDefinitions(
@@ -297,14 +307,15 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
   ): Promise<DefinitionLink[] | Location[]> {
     const document = this.getDocument(textDocument.uri);
 
-    const definitions = (
-      await this.execute<DefinitionLink[]>(
-        "getDefinitions",
-        [document, position],
-        ExecuteMode.Collect,
-        "high"
-      )
-    ).flat();
+    const definitions =
+      (
+        await this.execute<DefinitionLink[]>(
+          "getDefinitions",
+          [document, position],
+          ExecuteMode.Collect,
+          "high"
+        )
+      )?.flat() ?? [];
 
     if (this.pluginHostConfig.definitionLinkSupport) {
       return definitions;
@@ -325,13 +336,15 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     const document = this.getDocument(textDocument.uri);
 
     return (
-      await this.execute<CodeAction[]>(
-        "getCodeActions",
-        [document, range, context, cancellationToken],
-        ExecuteMode.Collect,
-        "high"
-      )
-    ).flat();
+      (
+        await this.execute<CodeAction[]>(
+          "getCodeActions",
+          [document, range, context, cancellationToken],
+          ExecuteMode.Collect,
+          "high"
+        )
+      )?.flat() ?? []
+    );
   }
 
   async executeCommand(

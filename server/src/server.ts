@@ -2,12 +2,29 @@ import {
   createConnection,
   IPCMessageReader,
   IPCMessageWriter,
+  RequestType,
+  TextDocumentIdentifier,
+  TextDocumentPositionParams,
   TextDocumentSyncKind,
 } from "vscode-languageserver/node";
 import { Document, DocumentManager } from "./lib/documents";
+import { getSemanticTokenLegends } from "./lib/semanticTokenLegend";
 import { Logger } from "./logger";
 import { LSConfigManager } from "./ls-config";
-import { CSSPlugin, HTMLPlugin, PluginHost } from "./plugins";
+
+import {
+  AppCompletionItem,
+  CSSPlugin,
+  HTMLPlugin,
+  PluginHost,
+} from "./plugins";
+namespace TagCloseRequest {
+  export const type: RequestType<
+    TextDocumentPositionParams,
+    string | null,
+    any
+  > = new RequestType("html/tag");
+}
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -85,29 +102,29 @@ connection.onInitialize((evt) => {
       hoverProvider: true,
       completionProvider: {
         resolveProvider: true,
-        triggerCharacters: [".", ":"],
+        triggerCharacters: [".", ":", "<"],
       },
-      // documentFormattingProvider: true,
-      // colorProvider: true,
-      // documentSymbolProvider: true,
-      // definitionProvider: true,
-      // renameProvider: evt.capabilities.textDocument?.rename?.prepareSupport
-      //   ? { prepareProvider: true }
-      //   : true,
-      // referencesProvider: true,
-      // selectionRangeProvider: true,
-      // signatureHelpProvider: {
-      //   triggerCharacters: ["(", ",", "<"],
-      //   retriggerCharacters: [")"],
-      // },
-      // semanticTokensProvider: {
-      //     legend: getSemanticTokenLegends(),
-      //     range: true,
-      //     full: true
-      // },
-      // linkedEditingRangeProvider: true,
-      // implementationProvider: true,
-      // typeDefinitionProvider: true,
+      documentFormattingProvider: true,
+      colorProvider: true,
+      documentSymbolProvider: true,
+      definitionProvider: true,
+      renameProvider: evt.capabilities.textDocument?.rename?.prepareSupport
+        ? { prepareProvider: true }
+        : true,
+      referencesProvider: true,
+      selectionRangeProvider: true,
+      signatureHelpProvider: {
+        triggerCharacters: ["(", ",", "<"],
+        retriggerCharacters: [")"],
+      },
+      semanticTokensProvider: {
+        legend: getSemanticTokenLegends(),
+        range: true,
+        full: true,
+      },
+      linkedEditingRangeProvider: true,
+      implementationProvider: true,
+      typeDefinitionProvider: true,
     },
   };
 });
@@ -136,7 +153,9 @@ connection.onDidChangeConfiguration(({ settings }) => {
 });
 
 // code listeners
-connection.onHover((evt) => pluginHost.doHover(evt.textDocument, evt.position));
+connection.onColorPresentation((evt) =>
+  pluginHost.getColorPresentations(evt.textDocument, evt.range, evt.color)
+);
 connection.onCompletion((evt, cancellationToken) =>
   pluginHost.getCompletions(
     evt.textDocument,
@@ -145,8 +164,57 @@ connection.onCompletion((evt, cancellationToken) =>
     cancellationToken
   )
 );
+connection.onCompletionResolve((completionItem, cancellationToken) => {
+  const data = (completionItem as AppCompletionItem)
+    .data as TextDocumentIdentifier;
+  if (!data) {
+    return completionItem;
+  }
+  return pluginHost.resolveCompletion(data, completionItem, cancellationToken);
+});
+connection.onDefinition((evt) =>
+  pluginHost.getDefinitions(evt.textDocument, evt.position)
+);
+connection.onDocumentColor((evt) =>
+  pluginHost.getDocumentColors(evt.textDocument)
+);
+connection.onDocumentFormatting((evt) =>
+  pluginHost.formatDocument(evt.textDocument, evt.options)
+);
 connection.onDocumentSymbol((evt, cancellationToken) =>
   pluginHost.getDocumentSymbols(evt.textDocument, cancellationToken)
+);
+connection.onHover((evt) => pluginHost.doHover(evt.textDocument, evt.position));
+connection.onImplementation((evt) =>
+  pluginHost.getImplementation(evt.textDocument, evt.position)
+);
+connection.onReferences((evt) =>
+  pluginHost.findReferences(evt.textDocument, evt.position, evt.context)
+);
+connection.onRequest(TagCloseRequest.type, (evt) =>
+  pluginHost.doTagComplete(evt.textDocument, evt.position)
+);
+connection.onSelectionRanges((evt) =>
+  pluginHost.getSelectionRanges(evt.textDocument, evt.positions)
+);
+connection.onSignatureHelp((evt, cancellationToken) =>
+  pluginHost.getSignatureHelp(
+    evt.textDocument,
+    evt.position,
+    evt.context,
+    cancellationToken
+  )
+);
+connection.onTypeDefinition((evt) =>
+  pluginHost.getTypeDefinition(evt.textDocument, evt.position)
+);
+
+// rename listeners
+connection.onPrepareRename((req) =>
+  pluginHost.prepareRename(req.textDocument, req.position)
+);
+connection.onRenameRequest((req) =>
+  pluginHost.rename(req.textDocument, req.position, req.newName)
 );
 
 // Listen on the connection
