@@ -293,9 +293,3 @@ export function returnObjectIfHasKeys<T>(obj: T | undefined): T | undefined {
     return obj;
   }
 }
-
-/** like lodash get */
-export function get<T>(obj: T, path: string | string[]): any {
-  var properties = Array.isArray(path) ? path : path.split(".");
-  return properties.reduce((prev, curr) => prev && prev[curr], obj as any);
-}

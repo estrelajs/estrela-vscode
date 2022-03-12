@@ -1,11 +1,17 @@
 import {
+  ApplyWorkspaceEditParams,
+  ApplyWorkspaceEditRequest,
+  CodeActionKind,
   createConnection,
   IPCMessageReader,
   IPCMessageWriter,
+  MessageType,
   RequestType,
+  ShowMessageNotification,
   TextDocumentIdentifier,
   TextDocumentPositionParams,
   TextDocumentSyncKind,
+  WorkspaceEdit,
 } from "vscode-languageserver/node";
 import { Document, DocumentManager } from "./lib/documents";
 import { getSemanticTokenLegends } from "./lib/semanticTokenLegend";
@@ -90,6 +96,8 @@ connection.onInitialize((evt) => {
   pluginHost.register(new HTMLPlugin(docManager, configManager));
   pluginHost.register(new CSSPlugin(docManager, configManager));
 
+  const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
+
   return {
     capabilities: {
       textDocumentSync: {
@@ -100,31 +108,58 @@ connection.onInitialize((evt) => {
         },
       },
       hoverProvider: true,
-      completionProvider: {
-        resolveProvider: true,
-        triggerCharacters: [".", ":", "<"],
-      },
-      documentFormattingProvider: true,
-      colorProvider: true,
-      documentSymbolProvider: true,
-      definitionProvider: true,
-      renameProvider: evt.capabilities.textDocument?.rename?.prepareSupport
-        ? { prepareProvider: true }
-        : true,
-      referencesProvider: true,
-      selectionRangeProvider: true,
-      signatureHelpProvider: {
-        triggerCharacters: ["(", ",", "<"],
-        retriggerCharacters: [")"],
-      },
-      semanticTokensProvider: {
-        legend: getSemanticTokenLegends(),
-        range: true,
-        full: true,
-      },
-      linkedEditingRangeProvider: true,
-      implementationProvider: true,
-      typeDefinitionProvider: true,
+      // completionProvider: {
+      //   resolveProvider: true,
+      //   triggerCharacters: [".", ":", "<"],
+      // },
+      // documentFormattingProvider: true,
+      // colorProvider: true,
+      // documentSymbolProvider: true,
+      // definitionProvider: true,
+      // codeActionProvider: evt.capabilities.textDocument?.codeAction
+      //   ?.codeActionLiteralSupport
+      //   ? {
+      //       codeActionKinds: [
+      //         CodeActionKind.QuickFix,
+      //         CodeActionKind.SourceOrganizeImports,
+      //         ...(clientSupportApplyEditCommand
+      //           ? [CodeActionKind.Refactor]
+      //           : []),
+      //       ],
+      //     }
+      //   : true,
+      // executeCommandProvider: clientSupportApplyEditCommand
+      //   ? {
+      //       commands: [
+      //         "function_scope_0",
+      //         "function_scope_1",
+      //         "function_scope_2",
+      //         "function_scope_3",
+      //         "constant_scope_0",
+      //         "constant_scope_1",
+      //         "constant_scope_2",
+      //         "constant_scope_3",
+      //         "Infer function return type",
+      //       ],
+      //     }
+      //   : undefined,
+      // renameProvider: evt.capabilities.textDocument?.rename?.prepareSupport
+      //   ? { prepareProvider: true }
+      //   : true,
+      // referencesProvider: true,
+      // selectionRangeProvider: true,
+      // signatureHelpProvider: {
+      //   triggerCharacters: ["(", ",", "<"],
+      //   retriggerCharacters: [")"],
+      // },
+      // semanticTokensProvider: {
+      //   legend: getSemanticTokenLegends(),
+      //   range: true,
+      //   full: true,
+      // },
+      // linkedEditingRangeProvider: true,
+      // implementationProvider: true,
+      // typeDefinitionProvider: true,
     },
   };
 });
@@ -208,6 +243,33 @@ connection.onSignatureHelp((evt, cancellationToken) =>
 connection.onTypeDefinition((evt) =>
   pluginHost.getTypeDefinition(evt.textDocument, evt.position)
 );
+
+// actions listeners
+
+connection.onCodeAction((evt, cancellationToken) =>
+  pluginHost.getCodeActions(
+    evt.textDocument,
+    evt.range,
+    evt.context,
+    cancellationToken
+  )
+);
+connection.onExecuteCommand(async (evt) => {
+  const result = await pluginHost.executeCommand(
+    { uri: evt.arguments?.[0] },
+    evt.command,
+    evt.arguments
+  );
+  if (WorkspaceEdit.is(result)) {
+    const edit: ApplyWorkspaceEditParams = { edit: result };
+    connection?.sendRequest(ApplyWorkspaceEditRequest.type.method, edit);
+  } else if (result) {
+    connection?.sendNotification(ShowMessageNotification.type.method, {
+      message: result,
+      type: MessageType.Error,
+    });
+  }
+});
 
 // rename listeners
 connection.onPrepareRename((req) =>

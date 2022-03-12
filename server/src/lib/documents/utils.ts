@@ -244,7 +244,7 @@ export function offsetAt(
 }
 
 export function getLineOffsets(text: string) {
-  const lineOffsets = [];
+  const lineOffsets: number[] = [];
   let isLineStart = true;
 
   for (let i = 0; i < text.length; i++) {

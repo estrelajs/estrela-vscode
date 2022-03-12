@@ -1,6 +1,7 @@
 import { UserPreferences } from "typescript";
 import { VSCodeEmmetConfig } from "vscode-emmet-helper";
-import { get, returnObjectIfHasKeys } from "./utils";
+import { returnObjectIfHasKeys } from "./utils";
+import { get } from "lodash";
 
 /**
  * Default config for the language server.
