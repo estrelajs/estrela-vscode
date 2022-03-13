@@ -3,6 +3,7 @@ import {
   ApplyWorkspaceEditRequest,
   CodeActionKind,
   createConnection,
+  DidChangeWatchedFilesParams,
   IPCMessageReader,
   IPCMessageWriter,
   MessageType,
@@ -14,6 +15,7 @@ import {
   TextDocumentSyncKind,
   WorkspaceEdit,
 } from "vscode-languageserver/node";
+import { DiagnosticsManager } from "./lib/DiagnosticsManager";
 import { Document, DocumentManager } from "./lib/documents";
 import { getSemanticTokenLegends } from "./lib/semanticTokenLegend";
 import { Logger } from "./logger";
@@ -23,10 +25,11 @@ import {
   CSSPlugin,
   HTMLPlugin,
   LSAndTSDocResolver,
+  OnWatchFileChangesPara,
   PluginHost,
   TypeScriptPlugin,
 } from "./plugins";
-import { normalizeUri } from "./utils";
+import { debounceThrottle, normalizeUri, urlToPath } from "./utils";
 
 namespace TagCloseRequest {
   export const type: RequestType<
@@ -288,8 +291,53 @@ connection.onTypeDefinition((evt) =>
   pluginHost.getTypeDefinition(evt.textDocument, evt.position)
 );
 
-// actions listeners
+// diagnostic listener
+const diagnosticsManager = new DiagnosticsManager(
+  connection.sendDiagnostics,
+  docManager,
+  pluginHost.getDiagnostics.bind(pluginHost)
+);
 
+const updateAllDiagnostics = debounceThrottle(
+  () => diagnosticsManager.updateAll(),
+  1000
+);
+
+connection.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
+function onDidChangeWatchedFiles(para: DidChangeWatchedFilesParams) {
+  const onWatchFileChangesParas = para.changes
+    .map((change) => ({
+      fileName: urlToPath(change.uri),
+      changeType: change.type,
+    }))
+    .filter((change): change is OnWatchFileChangesPara => !!change.fileName);
+
+  pluginHost.onWatchFileChanges(onWatchFileChangesParas);
+
+  updateAllDiagnostics();
+}
+
+connection.onDidSaveTextDocument(updateAllDiagnostics);
+connection.onNotification("$/onDidChangeTsOrJsFile", async (e: any) => {
+  const path = urlToPath(e.uri);
+  if (path) {
+    pluginHost.updateTsOrJsFile(path, e.changes);
+  }
+  updateAllDiagnostics();
+});
+
+docManager.on(
+  "documentChange",
+  debounceThrottle(
+    async (document: Document) => diagnosticsManager.update(document),
+    750
+  )
+);
+docManager.on("documentClose", (document: Document) =>
+  diagnosticsManager.removeDiagnostics(document)
+);
+
+// actions listeners
 connection.onCodeAction((evt, cancellationToken) =>
   pluginHost.getCodeActions(
     evt.textDocument,

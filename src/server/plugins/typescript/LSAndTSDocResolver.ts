@@ -20,7 +20,6 @@ export class LSAndTSDocResolver {
    * @param workspaceUris
    * @param configManager
    * @param notifyExceedSizeLimit
-   * @param isEstrelaCheck True, if used in the context of estrela-check
    * @param tsconfigPath This should only be set via estrela-check. Makes sure all documents are resolved to that tsconfig. Has to be absolute.
    */
   constructor(
@@ -28,7 +27,6 @@ export class LSAndTSDocResolver {
     private readonly workspaceUris: string[],
     private readonly configManager: LSConfigManager,
     private readonly notifyExceedSizeLimit?: () => void,
-    private readonly isEstrelaCheck = false,
     private readonly tsconfigPath?: string
   ) {
     const handleDocumentChange = (document: Document) => {
@@ -70,8 +68,8 @@ export class LSAndTSDocResolver {
     return {
       ambientTypesSource: "estrela-check", // this.isSvelteCheck ? "svelte-check" : "svelte2tsx"
       createDocument: this.createDocument,
-      useNewTransformation: false, // this.configManager.getConfig().estrela.useNewTransformation,
-      transformOnTemplateError: !this.isEstrelaCheck,
+      useNewTransformation: true, // this.configManager.getConfig().estrela.useNewTransformation,
+      transformOnTemplateError: false,
       globalSnapshotsManager: this.globalSnapshotsManager,
       notifyExceedSizeLimit: this.notifyExceedSizeLimit,
     };

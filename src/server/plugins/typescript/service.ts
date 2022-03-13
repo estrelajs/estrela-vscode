@@ -151,11 +151,9 @@ async function createLanguageService(
   let projectVersion = 0;
 
   const host: ts.LanguageServiceHost = {
-    getCompilationSettings: () => {
-      return compilerOptions;
-    },
-    getScriptFileNames: () => {
-      return Array.from(
+    getCompilationSettings: () => compilerOptions,
+    getScriptFileNames: () =>
+      Array.from(
         new Set([
           ...(languageServiceReducedMode
             ? []
@@ -163,50 +161,21 @@ async function createLanguageService(
           ...snapshotManager.getFileNames(),
           ...estrelaTsxFiles,
         ])
-      );
-    },
-    getScriptVersion: (fileName: string) => {
-      return getSnapshot(fileName).version.toString();
-    },
-    getScriptSnapshot(filename) {
-      return getSnapshot(filename);
-    },
-    getCurrentDirectory() {
-      return workspacePath;
-    },
-    getDefaultLibFileName(options) {
-      return ts.getDefaultLibFilePath(options);
-    },
-    fileExists(path) {
-      return estrelaModuleLoader.fileExists(path);
-    },
-    readFile(path, encoding) {
-      return estrelaModuleLoader.readFile(path, encoding);
-    },
-    resolveModuleNames(moduleNames, containingFile) {
-      return estrelaModuleLoader.resolveModuleNames(
-        moduleNames,
-        containingFile
-      );
-    },
-    readDirectory(path, ext, exc, inc, depth) {
-      return estrelaModuleLoader.readDirectory(path, ext, exc, inc, depth);
-    },
-    getDirectories(path) {
-      return ts.sys.getDirectories(path);
-    },
-    useCaseSensitiveFileNames: () => {
-      return ts.sys.useCaseSensitiveFileNames;
-    },
-    getScriptKind: (fileName: string) => {
-      return getSnapshot(fileName).scriptKind;
-    },
-    getProjectVersion: () => {
-      return projectVersion.toString();
-    },
-    getNewLine: () => {
-      return ts.sys.newLine;
-    },
+      ),
+    getScriptVersion: (fileName: string) =>
+      getSnapshot(fileName).version.toString(),
+    getScriptSnapshot: getSnapshot,
+    getCurrentDirectory: () => workspacePath,
+    getDefaultLibFileName: ts.getDefaultLibFilePath,
+    fileExists: estrelaModuleLoader.fileExists,
+    readFile: estrelaModuleLoader.readFile,
+    resolveModuleNames: estrelaModuleLoader.resolveModuleNames,
+    readDirectory: estrelaModuleLoader.readDirectory,
+    getDirectories: ts.sys.getDirectories,
+    useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
+    getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind,
+    getProjectVersion: () => projectVersion.toString(),
+    getNewLine: () => ts.sys.newLine,
   };
 
   let languageService = ts.createLanguageService(host);
@@ -350,6 +319,7 @@ async function createLanguageService(
       noEmit: true,
       declaration: false,
       skipLibCheck: true,
+      jsx: ts.JsxEmit.Preserve,
     };
     if (!docContext.useNewTransformation) {
       // these are needed to handle the results of estrela2tsx preprocessing:
