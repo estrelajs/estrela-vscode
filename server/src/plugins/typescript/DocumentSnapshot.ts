@@ -22,6 +22,7 @@ import {
 import { pathToUrl } from "../../utils";
 import { ConsumerDocumentMapper } from "./DocumentMapper";
 import { EstrelaNode } from "./estrela-ast-utils";
+import { estrela2tsx } from "./estrela2tsx";
 import {
   getScriptKindFromAttributes,
   getScriptKindFromFileName,
@@ -183,16 +184,38 @@ function preprocessEstrelaFile(
   // let exportedNames: IExportedNames = { has: () => false };
   // let htmlAst: TemplateNode | undefined;
 
-  const scriptKind = [
-    getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
-    getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {}),
-  ].includes(ts.ScriptKind.TSX)
-    ? options.useNewTransformation
-      ? ts.ScriptKind.TS
-      : ts.ScriptKind.TSX
-    : options.useNewTransformation
-    ? ts.ScriptKind.JS
-    : ts.ScriptKind.JSX;
+  // const scriptKind = [
+  //   getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
+  //   getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {}),
+  // ].includes(ts.ScriptKind.TSX)
+  //   ? options.useNewTransformation
+  //     ? ts.ScriptKind.TS
+  //     : ts.ScriptKind.TSX
+  //   : options.useNewTransformation
+  //   ? ts.ScriptKind.JS
+  //   : ts.ScriptKind.JSX;
+  const scriptKind = ts.ScriptKind.TSX;
+
+  try {
+    // get preprocessed tsx file
+    const tsx = estrela2tsx(text, {
+      filePath: document.getFilePath() ?? undefined,
+    });
+    text = tsx.code;
+    tsxMap = tsx.map;
+
+    if (tsxMap) {
+      tsxMap.sources = [document.uri];
+      const scriptInfo = document.scriptInfo ?? document.moduleScriptInfo;
+      const tsCheck = getTsCheckComment(scriptInfo?.content);
+      if (tsCheck) {
+        text = tsCheck + text;
+        nrPrependedLines = 1;
+      }
+    }
+  } catch (error) {
+    // TODO: handle error.
+  }
 
   // try {
   //     const tsx = svelte2tsx(text, {
@@ -269,7 +292,8 @@ export class EstrelaDocumentSnapshot implements DocumentSnapshot {
     private readonly text: string,
     private readonly nrPrependedLines: number,
     // private readonly exportedNames: IExportedNames,
-    private readonly tsxMap?: RawSourceMap // private readonly htmlAst?: TemplateNode
+    // private readonly htmlAst?: TemplateNode
+    private readonly tsxMap?: RawSourceMap
   ) {}
 
   get filePath() {

@@ -220,8 +220,8 @@ export class TypeScriptPlugin
       if (
         symbol.location.range.start.line < 0 ||
         symbol.location.range.end.line < 0 ||
-        isZeroLengthRange(symbol.location.range) ||
-        symbol.name.startsWith("__estrelats_")
+        isZeroLengthRange(symbol.location.range)
+        // || symbol.name.startsWith("__estrelats_")
       ) {
         continue;
       }

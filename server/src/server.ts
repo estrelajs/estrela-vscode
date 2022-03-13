@@ -122,58 +122,77 @@ connection.onInitialize((evt) => {
         },
       },
       hoverProvider: true,
-      // completionProvider: {
-      //   resolveProvider: true,
-      //   triggerCharacters: [".", ":", "<"],
-      // },
-      // documentFormattingProvider: true,
-      // colorProvider: true,
-      // documentSymbolProvider: true,
-      // definitionProvider: true,
-      // codeActionProvider: evt.capabilities.textDocument?.codeAction
-      //   ?.codeActionLiteralSupport
-      //   ? {
-      //       codeActionKinds: [
-      //         CodeActionKind.QuickFix,
-      //         CodeActionKind.SourceOrganizeImports,
-      //         ...(clientSupportApplyEditCommand
-      //           ? [CodeActionKind.Refactor]
-      //           : []),
-      //       ],
-      //     }
-      //   : true,
-      // executeCommandProvider: clientSupportApplyEditCommand
-      //   ? {
-      //       commands: [
-      //         "function_scope_0",
-      //         "function_scope_1",
-      //         "function_scope_2",
-      //         "function_scope_3",
-      //         "constant_scope_0",
-      //         "constant_scope_1",
-      //         "constant_scope_2",
-      //         "constant_scope_3",
-      //         "Infer function return type",
-      //       ],
-      //     }
-      //   : undefined,
-      // renameProvider: evt.capabilities.textDocument?.rename?.prepareSupport
-      //   ? { prepareProvider: true }
-      //   : true,
-      // referencesProvider: true,
-      // selectionRangeProvider: true,
-      // signatureHelpProvider: {
-      //   triggerCharacters: ["(", ",", "<"],
-      //   retriggerCharacters: [")"],
-      // },
-      // semanticTokensProvider: {
-      //   legend: getSemanticTokenLegends(),
-      //   range: true,
-      //   full: true,
-      // },
-      // linkedEditingRangeProvider: true,
-      // implementationProvider: true,
-      // typeDefinitionProvider: true,
+      completionProvider: {
+        resolveProvider: true,
+        triggerCharacters: [
+          ".",
+          '"',
+          "'",
+          "`",
+          "/",
+          "@",
+          "<",
+          // Emmet
+          ">",
+          "*",
+          "#",
+          "$",
+          "+",
+          "^",
+          "(",
+          "[",
+          "@",
+          "-",
+        ],
+      },
+      documentFormattingProvider: true,
+      colorProvider: true,
+      documentSymbolProvider: true,
+      definitionProvider: true,
+      codeActionProvider: evt.capabilities.textDocument?.codeAction
+        ?.codeActionLiteralSupport
+        ? {
+            codeActionKinds: [
+              CodeActionKind.QuickFix,
+              CodeActionKind.SourceOrganizeImports,
+              ...(clientSupportApplyEditCommand
+                ? [CodeActionKind.Refactor]
+                : []),
+            ],
+          }
+        : true,
+      executeCommandProvider: clientSupportApplyEditCommand
+        ? {
+            commands: [
+              "function_scope_0",
+              "function_scope_1",
+              "function_scope_2",
+              "function_scope_3",
+              "constant_scope_0",
+              "constant_scope_1",
+              "constant_scope_2",
+              "constant_scope_3",
+              "Infer function return type",
+            ],
+          }
+        : undefined,
+      renameProvider: evt.capabilities.textDocument?.rename?.prepareSupport
+        ? { prepareProvider: true }
+        : true,
+      referencesProvider: true,
+      selectionRangeProvider: true,
+      signatureHelpProvider: {
+        triggerCharacters: ["(", ",", "<"],
+        retriggerCharacters: [")"],
+      },
+      semanticTokensProvider: {
+        legend: getSemanticTokenLegends(),
+        range: true,
+        full: true,
+      },
+      linkedEditingRangeProvider: true,
+      implementationProvider: true,
+      typeDefinitionProvider: true,
     },
   };
 });
