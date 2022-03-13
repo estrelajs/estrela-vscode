@@ -95,9 +95,7 @@ export function activateEstrelaLanguageServer(context: ExtensionContext) {
   //     : undefined;
 
   const serverModule = context.asAbsolutePath(
-    isDebugging
-      ? path.join("server", "out", "server.js")
-      : path.join("dist", "server.js")
+    path.join("dist", "server", "server.js")
   );
   console.log("Loading server from ", serverModule);
 
