@@ -8,11 +8,11 @@ This extension is a language service to create Estrela element files with ".estr
 
 Estrela file example:
 
-![app-root element](assets/syntax-highlight.png)
+![app-root element](https://github.com/estrelajs/estrela-vscode/blob/main/assets/syntax-highlight.png)
 
 VSCode outline tree:
 
-![app-root element](assets/outline.png)
+![app-root element](https://github.com/estrelajs/estrela-vscode/blob/main/assets/outline.png)
 
 <!-- ## Requirements
 
