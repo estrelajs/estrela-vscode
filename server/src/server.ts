@@ -6,6 +6,7 @@ import {
   IPCMessageReader,
   IPCMessageWriter,
   MessageType,
+  RenameFile,
   RequestType,
   ShowMessageNotification,
   TextDocumentIdentifier,
@@ -17,7 +18,6 @@ import { Document, DocumentManager } from "./lib/documents";
 import { getSemanticTokenLegends } from "./lib/semanticTokenLegend";
 import { Logger } from "./logger";
 import { LSConfigManager } from "./ls-config";
-
 import {
   AppCompletionItem,
   CSSPlugin,
@@ -27,6 +27,7 @@ import {
   TypeScriptPlugin,
 } from "./plugins";
 import { normalizeUri } from "./utils";
+
 namespace TagCloseRequest {
   export const type: RequestType<
     TextDocumentPositionParams,
@@ -320,6 +321,13 @@ connection.onPrepareRename((req) =>
 );
 connection.onRenameRequest((req) =>
   pluginHost.rename(req.textDocument, req.position, req.newName)
+);
+
+// The language server protocol does not have a specific "did rename/move files" event,
+// so we create our own in the extension client and handle it here
+connection.onRequest(
+  "$/getEditsForFileRename",
+  async (fileRename: RenameFile) => pluginHost.updateImports(fileRename)
 );
 
 // Listen on the connection

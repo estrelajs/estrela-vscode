@@ -5,7 +5,10 @@
     "lib": ["es2020"],
     "outDir": "out",
     "rootDir": "src",
-    "sourceMap": true
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "strict": true
   },
   "include": ["src"],
   "exclude": ["node_modules", ".vscode-test"]

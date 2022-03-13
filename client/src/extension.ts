@@ -1,27 +1,119 @@
-import * as path from "path";
-import * as vscode from "vscode";
 import {
+  commands,
+  ExtensionContext,
+  IndentAction,
+  languages,
+  Position,
+  ProgressLocation,
+  Range,
+  TextDocument,
+  Uri,
+  window,
+  workspace,
+  WorkspaceEdit,
+} from "vscode";
+import {
+  ExecuteCommandRequest,
   LanguageClient,
   LanguageClientOptions,
+  RequestType,
+  RevealOutputChannelOn,
   ServerOptions,
+  TextDocumentEdit,
+  TextDocumentPositionParams,
   TransportKind,
+  WorkspaceEdit as LSWorkspaceEdit,
 } from "vscode-languageclient";
+import { activateTagClosing } from "./html/autoClose";
+import { EMPTY_ELEMENTS } from "./html/htmlEmptyTagsShared";
+import path from "path";
 
-let client: LanguageClient;
+namespace TagCloseRequest {
+  export const type: RequestType<TextDocumentPositionParams, string, any> =
+    new RequestType("html/tag");
+}
 
-export function activate(context: vscode.ExtensionContext) {
-  // The server is implemented in node
+export function activate(context: ExtensionContext) {
+  // The extension is activated on TS/JS/Estrela files because else it might be too late to configure the TS plugin:
+  // If we only activate on Estrela file and the user opens a TS file first, the configuration command is issued too late.
+  // We wait until there's a Estrela file open and only then start the actual language client.
+  // const tsPlugin = new TsPlugin(context);
+  let lsApi: { getLS(): LanguageClient } | undefined;
+
+  if (workspace.textDocuments.some((doc) => doc.languageId === "estrela")) {
+    lsApi = activateEstrelaLanguageServer(context);
+    // tsPlugin.askToEnable();
+  } else {
+    const onTextDocumentListener = workspace.onDidOpenTextDocument((doc) => {
+      if (doc.languageId === "estrela") {
+        lsApi = activateEstrelaLanguageServer(context);
+        // tsPlugin.askToEnable();
+        onTextDocumentListener.dispose();
+      }
+    });
+
+    context.subscriptions.push(onTextDocumentListener);
+  }
+
+  // This API is considered private and only exposed for experimenting.
+  // Interface may change at any time. Use at your own risk!
+  return {
+    /**
+     * As a function, because restarting the server
+     * will result in another instance.
+     */
+    getLanguageServer() {
+      if (!lsApi) {
+        lsApi = activateEstrelaLanguageServer(context);
+      }
+
+      return lsApi.getLS();
+    },
+  };
+}
+
+export function activateEstrelaLanguageServer(context: ExtensionContext) {
+  // warnIfOldExtensionInstalled();
+
+  // const runtimeConfig = workspace.getConfiguration("estrela.language-server");
+
+  // const { workspaceFolders } = workspace;
+  // const rootPath = Array.isArray(workspaceFolders)
+  //   ? workspaceFolders[0].uri.fsPath
+  //   : undefined;
+
+  // const tempLsPath = runtimeConfig.get<string>("ls-path");
+  // Returns undefined if path is empty string
+  // Return absolute path if not already
+  // const lsPath =
+  //   tempLsPath && tempLsPath.trim() !== ""
+  //     ? path.isAbsolute(tempLsPath)
+  //       ? tempLsPath
+  //       : path.join(rootPath as string, tempLsPath)
+  //     : undefined;
+
   const serverModule = context.asAbsolutePath(
     path.join("server", "out", "server.js")
   );
-  // The debug options for the server
-  // --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging
-  const debugOptions = { execArgv: ["--nolazy", "--inspect=6009"] };
+  console.log("Loading server from ", serverModule);
 
-  // If the extension is launched in debug mode then the debug server options are used
-  // Otherwise the run options are used
+  // Add --experimental-modules flag for people using node 12 < version < 12.17
+  // Remove this in mid 2022 and bump vs code minimum required version to 1.55
+  const runExecArgv: string[] = ["--experimental-modules"];
+  const isDebugging = true;
+  if (isDebugging) {
+    runExecArgv.push(`--inspect=6009`);
+  }
+  const debugOptions = {
+    execArgv: ["--nolazy", "--experimental-modules", `--inspect=6009`],
+  };
+
   const serverOptions: ServerOptions = {
-    run: { module: serverModule, transport: TransportKind.ipc },
+    run: {
+      module: serverModule,
+      transport: TransportKind.ipc,
+      options: { execArgv: runExecArgv },
+    },
     debug: {
       module: serverModule,
       transport: TransportKind.ipc,
@@ -29,22 +121,372 @@ export function activate(context: vscode.ExtensionContext) {
     },
   };
 
+  // const serverRuntime = runtimeConfig.get<string>("runtime");
+  // if (serverRuntime) {
+  //   serverOptions.run.runtime = serverRuntime;
+  //   serverOptions.debug.runtime = serverRuntime;
+  //   console.log("setting server runtime to", serverRuntime);
+  // }
+
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: "file", language: "estrela" }],
+    revealOutputChannelOn: RevealOutputChannelOn.Never,
+    synchronize: {
+      // TODO deprecated, rework upon next VS Code minimum version bump
+      configurationSection: [
+        "estrela",
+        "prettier",
+        "emmet",
+        "javascript",
+        "typescript",
+        "css",
+        "less",
+        "scss",
+      ],
+      fileEvents: workspace.createFileSystemWatcher(
+        "{**/*.js,**/*.ts}",
+        false,
+        false,
+        false
+      ),
+    },
+    initializationOptions: {
+      configuration: {
+        // estrela: workspace.getConfiguration("estrela"),
+        prettier: workspace.getConfiguration("prettier"),
+        emmet: workspace.getConfiguration("emmet"),
+        typescript: workspace.getConfiguration("typescript"),
+        javascript: workspace.getConfiguration("javascript"),
+        css: workspace.getConfiguration("css"),
+        less: workspace.getConfiguration("less"),
+        scss: workspace.getConfiguration("scss"),
+      },
+      dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
+      isTrusted: (workspace as any).isTrusted,
+    },
   };
 
-  // Create the language client and start the client.
-  client = new LanguageClient(
-    "estrela",
-    "Estrela",
-    serverOptions,
-    clientOptions
+  let ls = createLanguageServer(serverOptions, clientOptions);
+  context.subscriptions.push(ls.start());
+
+  ls.onReady().then(() => {
+    const tagRequestor = (document: TextDocument, position: Position) => {
+      const param = ls.code2ProtocolConverter.asTextDocumentPositionParams(
+        document,
+        position
+      );
+      return ls.sendRequest(TagCloseRequest.type, param);
+    };
+    const disposable = activateTagClosing(
+      tagRequestor,
+      { estrela: true },
+      "html.autoClosingTags"
+    );
+    context.subscriptions.push(disposable);
+  });
+
+  workspace.onDidSaveTextDocument(async (doc) => {
+    const parts = doc.uri.toString(true).split(/\/|\\/);
+    if (
+      [
+        /^tsconfig\.json$/,
+        /^jsconfig\.json$/,
+        // /^estrela\.config\.(js|cjs|mjs)$/,
+        // https://prettier.io/docs/en/configuration.html
+        /^\.prettierrc$/,
+        /^\.prettierrc\.(json|yml|yaml|json5|toml)$/,
+        /^\.prettierrc\.(js|cjs)$/,
+        /^\.prettierrc\.config\.(js|cjs)$/,
+      ].some((regex) => regex.test(parts[parts.length - 1]))
+    ) {
+      await restartLS(false);
+    }
+  });
+
+  context.subscriptions.push(
+    commands.registerCommand("estrela.restartLanguageServer", async () => {
+      await restartLS(true);
+    })
   );
 
-  // Start the client. This will also launch the server
-  client.start();
+  let restartingLs = false;
+  async function restartLS(showNotification: boolean) {
+    if (restartingLs) {
+      return;
+    }
+
+    restartingLs = true;
+    await ls.stop();
+    ls = createLanguageServer(serverOptions, clientOptions);
+    context.subscriptions.push(ls.start());
+    await ls.onReady();
+    if (showNotification) {
+      window.showInformationMessage("Estrela language server restarted.");
+    }
+    restartingLs = false;
+  }
+
+  function getLS() {
+    return ls;
+  }
+
+  addDidChangeTextDocumentListener(getLS);
+
+  addRenameFileListener(getLS);
+
+  // addCompilePreviewCommand(getLS, context);
+
+  // addExtracComponentCommand(getLS, context);
+
+  languages.setLanguageConfiguration("estrela", {
+    indentationRules: {
+      // Matches a valid opening tag that is:
+      //  - Not a doctype
+      //  - Not a void element
+      //  - Not a closing tag
+      //  - Not followed by a closing tag of the same element
+      // Or matches `<!--`
+      // Or matches open curly brace
+      //
+      increaseIndentPattern:
+        // eslint-disable-next-line max-len, no-useless-escape
+        /<(?!\?|(?:area|base|br|col|frame|hr|html|img|input|link|meta|param)\b|[^>]*\/>)([-_\.A-Za-z0-9]+)(?=\s|>)\b[^>]*>(?!.*<\/\1>)|<!--(?!.*-->)|\{[^}"']*$/,
+      // Matches a closing tag that:
+      //  - Follows optional whitespace
+      //  - Is not `</html>`
+      // Or matches `-->`
+      // Or closing curly brace
+      //
+      // eslint-disable-next-line no-useless-escape
+      decreaseIndentPattern: /^\s*(<\/(?!html)[-_\.A-Za-z0-9]+\b[^>]*>|-->|\})/,
+    },
+    // Matches a number or word that either:
+    //  - Is a number with an optional negative sign and optional full number
+    //    with numbers following the decimal point. e.g `-1.1px`, `.5`, `-.42rem`, etc
+    //  - Is a sequence of characters without spaces and not containing
+    //    any of the following: `~!@$^&*()=+[{]}\|;:'",.<>/
+    //
+    wordPattern:
+      // eslint-disable-next-line max-len, no-useless-escape
+      /(-?\d*\.\d\w*)|([^\`\~\!\@\$\#\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
+    onEnterRules: [
+      {
+        // Matches an opening tag that:
+        //  - Isn't an empty element
+        //  - Is possibly namespaced
+        //  - Isn't a void element
+        //  - Isn't followed by another tag on the same line
+        //
+        // eslint-disable-next-line no-useless-escape
+        beforeText: new RegExp(
+          `<(?!(?:${EMPTY_ELEMENTS.join(
+            "|"
+          )}))([_:\\w][_:\\w-.\\d]*)([^/>]*(?!/)>)[^<]*$`,
+          "i"
+        ),
+        // Matches a closing tag that:
+        //  - Is possibly namespaced
+        //  - Possibly has excess whitespace following tagname
+        afterText: /^<\/([_:\w][_:\w-.\d]*)\s*>/i,
+        action: { indentAction: IndentAction.IndentOutdent },
+      },
+      {
+        // Matches an opening tag that:
+        //  - Isn't an empty element
+        //  - Isn't namespaced
+        //  - Isn't a void element
+        //  - Isn't followed by another tag on the same line
+        //
+        // eslint-disable-next-line no-useless-escape
+        beforeText: new RegExp(
+          `<(?!(?:${EMPTY_ELEMENTS.join(
+            "|"
+          )}))(\\w[\\w\\d]*)([^/>]*(?!/)>)[^<]*$`,
+          "i"
+        ),
+        action: { indentAction: IndentAction.Indent },
+      },
+    ],
+  });
+
+  return {
+    getLS,
+  };
 }
 
-export function deactivate(): Thenable<void> | undefined {
-  return client?.stop();
+function addDidChangeTextDocumentListener(getLS: () => LanguageClient) {
+  // Only Estrela file changes are automatically notified through the inbuilt LSP
+  // because the extension says it's only responsible for Estrela files.
+  // Therefore we need to set this up for TS/JS files manually.
+  workspace.onDidChangeTextDocument((evt) => {
+    if (
+      evt.document.languageId === "typescript" ||
+      evt.document.languageId === "javascript"
+    ) {
+      getLS().sendNotification("$/onDidChangeTsOrJsFile", {
+        uri: evt.document.uri.toString(true),
+        changes: evt.contentChanges.map((c) => ({
+          range: {
+            start: {
+              line: c.range.start.line,
+              character: c.range.start.character,
+            },
+            end: { line: c.range.end.line, character: c.range.end.character },
+          },
+          text: c.text,
+        })),
+      });
+    }
+  });
 }
+
+function addRenameFileListener(getLS: () => LanguageClient) {
+  workspace.onDidRenameFiles(async (evt) => {
+    const oldUri = evt.files[0].oldUri.toString(true);
+    const parts = oldUri.split(/\/|\\/);
+    const lastPart = parts[parts.length - 1];
+    // If user moves/renames a folder, the URI only contains the parts up to that folder,
+    // and not files. So in case the URI does not contain a '.', check for imports to update.
+    if (
+      lastPart.includes(".") &&
+      ![".ts", ".js", ".json", ".estrela"].some((ending) =>
+        lastPart.endsWith(ending)
+      )
+    ) {
+      return;
+    }
+
+    window.withProgress(
+      { location: ProgressLocation.Window, title: "Updating Imports.." },
+      async () => {
+        const editsForFileRename =
+          await getLS().sendRequest<LSWorkspaceEdit | null>(
+            "$/getEditsForFileRename",
+            // Right now files is always an array with a single entry.
+            // The signature was only designed that way to - maybe, in the future -
+            // have the possibility to change that. If that ever does, update this.
+            // In the meantime, just assume it's a single entry and simplify the
+            // rest of the logic that way.
+            {
+              oldUri,
+              newUri: evt.files[0].newUri.toString(true),
+            }
+          );
+        if (!editsForFileRename) {
+          return;
+        }
+
+        const workspaceEdit = new WorkspaceEdit();
+        // Renaming a file should only result in edits of existing files
+        editsForFileRename.documentChanges
+          ?.filter(TextDocumentEdit.is)
+          .forEach((change) =>
+            change.edits.forEach((edit) => {
+              workspaceEdit.replace(
+                Uri.parse(change.textDocument.uri),
+                new Range(
+                  new Position(
+                    edit.range.start.line,
+                    edit.range.start.character
+                  ),
+                  new Position(edit.range.end.line, edit.range.end.character)
+                ),
+                edit.newText
+              );
+            })
+          );
+        workspace.applyEdit(workspaceEdit);
+      }
+    );
+  });
+}
+
+// function addCompilePreviewCommand(
+//   getLS: () => LanguageClient,
+//   context: ExtensionContext
+// ) {
+//   const compiledCodeContentProvider = new CompiledCodeContentProvider(getLS);
+
+//   context.subscriptions.push(
+//     workspace.registerTextDocumentContentProvider(
+//       CompiledCodeContentProvider.scheme,
+//       compiledCodeContentProvider
+//     ),
+//     compiledCodeContentProvider
+//   );
+
+//   context.subscriptions.push(
+//     commands.registerTextEditorCommand(
+//       "estrela.showCompiledCodeToSide",
+//       async (editor) => {
+//         if (editor?.document?.languageId !== "estrela") {
+//           return;
+//         }
+
+//         const uri = editor.document.uri;
+//         const estrelaUri = CompiledCodeContentProvider.toEstrelaSchemeUri(uri);
+//         window.withProgress(
+//           { location: ProgressLocation.Window, title: "Compiling.." },
+//           async () => {
+//             return await window.showTextDocument(estrelaUri, {
+//               preview: true,
+//               viewColumn: ViewColumn.Beside,
+//             });
+//           }
+//         );
+//       }
+//     )
+//   );
+// }
+
+// function addExtracComponentCommand(
+//   getLS: () => LanguageClient,
+//   context: ExtensionContext
+// ) {
+//   context.subscriptions.push(
+//     commands.registerTextEditorCommand(
+//       "estrela.extractComponent",
+//       async (editor) => {
+//         if (editor?.document?.languageId !== "estrela") {
+//           return;
+//         }
+
+//         // Prompt for new component name
+//         const options = {
+//           prompt: "Component Name: ",
+//           placeHolder: "NewComponent",
+//         };
+
+//         window.showInputBox(options).then(async (filePath) => {
+//           if (!filePath) {
+//             return window.showErrorMessage("No component name");
+//           }
+
+//           const uri = editor.document.uri.toString();
+//           const range = editor.selection;
+//           getLS().sendRequest(ExecuteCommandRequest.type, {
+//             command: "extract_to_estrela_component",
+//             arguments: [uri, { uri, range, filePath }],
+//           });
+//         });
+//       }
+//     )
+//   );
+// }
+
+function createLanguageServer(
+  serverOptions: ServerOptions,
+  clientOptions: LanguageClientOptions
+) {
+  return new LanguageClient("estrela", "Estrela", serverOptions, clientOptions);
+}
+
+// function warnIfOldExtensionInstalled() {
+//   if (extensions.getExtension("JamesBirtles.estrela-vscode")) {
+//     window.showWarningMessage(
+//       'It seems you have the old and deprecated extension named "Estrela" installed. Please remove it. ' +
+//         'Through the UI: You can find it when searching for "@installed" in the extensions window (searching "Estrela" won\'t work). ' +
+//         'Command line: "code --uninstall-extension JamesBirtles.estrela-vscode"'
+//     );
+//   }
+// }
