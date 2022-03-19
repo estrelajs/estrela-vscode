@@ -197,18 +197,6 @@
           ]
         }
       ]
-    },
-    "L:(source.tsx, source.jsx, source.coffee)": {
-      "patterns": [
-        {
-          "match": "(?<![_$[:alnum:]])\\$(?=[_[:alpha:]][_$[:alnum:]]*)",
-          "name": "punctuation.definition.variable.estrela"
-        },
-        {
-          "match": "(?<![_$[:alnum:]])(\\$\\$)(?=props|restProps|slots)",
-          "name": "punctuation.definition.variable.estrela"
-        }
-      ]
     }
   },
   "patterns": [

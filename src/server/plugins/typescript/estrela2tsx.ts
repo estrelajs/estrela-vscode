@@ -63,16 +63,8 @@ export function estrela2tsx(
   if (script) {
     const openingIndex = code.indexOf(script.opening);
     const closingIndex = code.indexOf(script.closing);
-    ms.overwrite(
-      openingIndex,
-      openingIndex + script.opening.length,
-      'import { defineElement, html } from "estrela";'
-    );
-    ms.overwrite(
-      closingIndex,
-      closingIndex + script.closing.length,
-      `defineElement("${tag}", () => () => html\`\`);\n(<>`
-    );
+    ms.overwrite(openingIndex, openingIndex + script.opening.length, "");
+    ms.overwrite(closingIndex, closingIndex + script.closing.length, `;(<>`);
     ms.append("\n</>);");
   }
 

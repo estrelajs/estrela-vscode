@@ -21,8 +21,14 @@ Estrela files do not use real Jsx elements, it only translates Jsx to `html` str
 ## To do
 
 - Add custom implementations of Jsx elements.
+- Add reference to the element `host`.
+- Fix import indentation.
 
 ## Release Notes
+
+### 1.0.2
+
+Fixed import bug.
 
 ### 1.0.1
 
