@@ -269,15 +269,6 @@
           "contentName": "meta.embedded.expression.estrela source.tsx",
           "patterns": [
             {
-              "begin": "\\G\\s*(?={)",
-              "end": "(?<=})",
-              "patterns": [
-                {
-                  "include": "source.tsx#object-literal"
-                }
-              ]
-            },
-            {
               "include": "source.tsx"
             }
           ]
@@ -503,53 +494,32 @@
       ]
     },
     "attributes-directives": {
-      "begin": "(?<!<)(on|bind|class|style)(:)(?:((?:--)?[_$[:alpha:]][_\\-$[:alnum:]]*(?=\\s*=))|((?:--)?[_$[:alpha:]][_\\-$[:alnum:]]*))((\\|\\w+)*)",
+      "begin": "(?<!<)(on|bind|class|style)(:)([\\w-]+)(.)?(\\w+)?",
       "beginCaptures": {
         "1": {
-          "patterns": [
-            {
-              "include": "#attributes-directives-keywords"
-            }
-          ]
+          "name": "keyword.control.estrela"
         },
         "2": {
-          "name": "punctuation.definition.keyword.svelte"
+          "name": "punctuation.definition.keyword.estrela"
         },
         "3": {
-          "patterns": [
-            {
-              "include": "#attributes-directives-types-assigned"
-            }
-          ]
+          "name": "entity.other.attribute-name.estrela"
         },
         "4": {
-          "patterns": [
-            {
-              "include": "#attributes-directives-types"
-            }
-          ]
+          "name": "punctuation.definition.keyword.estrela"
         },
         "5": {
-          "patterns": [
-            {
-              "match": "\\w+",
-              "name": "support.function.svelte"
-            },
-            {
-              "match": "\\|",
-              "name": "punctuation.separator.svelte"
-            }
-          ]
+          "name": "support.function.estrela"
         }
       },
       "end": "(?=\\s*+[^=\\s])",
-      "name": "meta.directive.$1.svelte",
+      "name": "meta.directive.$1.estrela",
       "patterns": [
         {
           "begin": "=",
           "beginCaptures": {
             "0": {
-              "name": "punctuation.separator.key-value.svelte"
+              "name": "punctuation.separator.key-value.estrela"
             }
           },
           "end": "(?<=[^\\s=])(?!\\s*=)|(?=/?>)",
@@ -558,57 +528,6 @@
               "include": "#attributes-value"
             }
           ]
-        }
-      ]
-    },
-    "attributes-directives-keywords": {
-      "patterns": [
-        {
-          "match": "on|bind",
-          "name": "keyword.control.estrela"
-        },
-        {
-          "match": "class|style",
-          "name": "entity.other.attribute-name.svelte"
-        }
-      ]
-    },
-    "attributes-directives-types-assigned": {
-      "patterns": [
-        {
-          "match": "(?<=(bind):)this$",
-          "name": "variable.language.svelte"
-        },
-        {
-          "match": "(?<=(bind):).*$",
-          "name": "entity.name.type.svelte"
-        },
-        {
-          "match": "(?<=(class):).*$",
-          "name": "entity.other.attribute-name.class.svelte"
-        },
-        {
-          "match": "(?<=(style):).*$",
-          "name": "support.type.property-name.svelte"
-        },
-        {
-          "include": "#attributes-directives-types"
-        }
-      ]
-    },
-    "attributes-directives-types": {
-      "patterns": [
-        {
-          "match": "(?<=(on):).*$",
-          "name": "entity.name.type.svelte"
-        },
-        {
-          "match": "(?<=(bind):).*$",
-          "name": "variable.parameter.svelte"
-        },
-        {
-          "match": "(?<=(class|style):).*$",
-          "name": "variable.parameter.svelte"
         }
       ]
     },

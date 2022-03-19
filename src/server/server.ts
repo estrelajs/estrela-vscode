@@ -204,7 +204,7 @@ connection.onInitialize((evt) => {
 function notifyTsServiceExceedSizeLimit() {
   connection?.sendNotification(ShowMessageNotification.type, {
     message:
-      "Estrela language server detected a large amount of JS/Svelte files. " +
+      "Estrela language server detected a large amount of JS/Estrela files. " +
       "To enable project-wide JavaScript/TypeScript language features for Estrela files," +
       "exclude large folders in the tsconfig.json or jsconfig.json with source files that you do not work on.",
     type: MessageType.Warning,

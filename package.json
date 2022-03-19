@@ -3,7 +3,7 @@
   "displayName": "Estrela for Vscode",
   "description": "Highlight syntax for Estrela files for vscode",
   "icon": "assets/logo.png",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "engines": {
     "vscode": "^1.65.0"
   },
@@ -11,6 +11,7 @@
   "main": "./dist/client/extension.js",
   "publisher": "estrelajs",
   "scripts": {
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -b",
     "watch": "tsc -b -w",
     "lint": "eslint ./client/src ./server/src --ext .ts,.tsx"
@@ -57,10 +58,20 @@
         "scopeName": "source.estrela",
         "path": "./syntaxes/estrela.tmLanguage.json",
         "embeddedLanguages": {
+          "text.html.basic": "html",
+          "text.html.markdown": "markdown",
+          "text.pug": "jade",
+          "source.css": "css",
+          "source.css.less": "less",
+          "source.css.scss": "scss",
+          "source.css.postcss": "postcss",
+          "source.sass": "sass",
+          "source.stylus": "stylus",
           "source.js": "javascript",
           "source.ts": "typescript",
           "source.jsx": "javascriptreact",
-          "source.tsx": "typescriptreact"
+          "source.tsx": "typescriptreact",
+          "source.coffee": "coffeescript"
         }
       }
     ]

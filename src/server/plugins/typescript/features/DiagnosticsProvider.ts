@@ -120,13 +120,13 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         mapRange(
           fragment,
           document,
-          false // this.configManager.getConfig().svelte.useNewTransformation
+          false // this.configManager.getConfig().estrela.useNewTransformation
         )
       )
       .filter(hasNoNegativeLines)
       .filter(
         isNoFalsePositive(
-          false, // this.configManager.getConfig().svelte.useNewTransformation,
+          false, // this.configManager.getConfig().estrela.useNewTransformation,
           document,
           tsDoc
         )
@@ -288,7 +288,7 @@ function isNoUsedBeforeAssigned(
 
 /**
  * Jsx cannot have multiple attributes with same name,
- * but that's allowed for svelte
+ * but that's allowed for estrela
  */
 function isNoJsxCannotHaveMultipleAttrsError(diagnostic: Diagnostic) {
   return diagnostic.code !== DiagnosticCode.DUPLICATED_JSX_ATTRIBUTES;
@@ -301,7 +301,7 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
   if (
     diagnostic.code === DiagnosticCode.CANNOT_BE_USED_AS_JSX_COMPONENT ||
     (diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
-      diagnostic.message.includes("ConstructorOfATypedSvelteComponent"))
+      diagnostic.message.includes("ConstructorOfATypedEstrelaComponent"))
   ) {
     return {
       ...diagnostic,
@@ -309,10 +309,10 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
         diagnostic.message +
         "\n\nPossible causes:\n" +
         "- You use the instance type of a component where you should use the constructor type\n" +
-        "- Type definitions are missing for this Svelte Component. " +
-        "If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:\n" +
-        '  import type { SvelteComponentTyped } from "svelte";\n' +
-        "  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}",
+        "- Type definitions are missing for this Estrela Component. " +
+        "If you are using Estrela 3.31+, use EstrelaComponentTyped to add a definition:\n" +
+        '  import type { EstrelaComponentTyped } from "estrela";\n' +
+        "  class ComponentName extends EstrelaComponentTyped<{propertyName: string;}> {}",
     };
   }
 
@@ -323,7 +323,7 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
       ...diagnostic,
       message:
         "Element does not support attributes because " +
-        "type definitions are missing for this Svelte Component or element cannot be used as such.\n\n" +
+        "type definitions are missing for this Estrela Component or element cannot be used as such.\n\n" +
         "Underlying error:\n" +
         diagnostic.message,
     };
@@ -389,7 +389,7 @@ function isUnusedReactiveStatementLabel(diagnostic: ts.Diagnostic) {
 
 /**
  * Checks if diagnostics should be ignored because they report an unused expression* in
- * a reactive statement, and those actually have side effects in Svelte (hinting deps).
+ * a reactive statement, and those actually have side effects in Estrela (hinting deps).
  *
  *     $: x, update()
  *

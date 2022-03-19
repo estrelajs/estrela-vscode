@@ -16,34 +16,17 @@ VSCode outline tree:
 
 ## Requirements
 
-Estrela files do not use real Jsx elements, it only translates Jsx to `html` string calls. For that reason, vscode will complaign about "JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements'".
-
-To fix it you need to add React types:
-
-```bash
-# npm
-npm i -save -D @types/react
-
-# yarn
-yarn add --dev @types/react
-```
-
-<!-- ## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something -->
+Estrela files do not use real Jsx elements, it only translates Jsx to `html` string calls. For that reason, if typescript is in strict mode, it will complaign about "JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements'". To solve that, disable "noImplicitAny" in `tsconfig.json`.
 
 ## To do
 
-- Add custom implementations of Jsx elements or bundle "@types/react" in the extension package.
+- Add custom implementations of Jsx elements.
 
 ## Release Notes
+
+### 1.0.1
+
+Fixed typescript types bug.
 
 ### 1.0.0
 

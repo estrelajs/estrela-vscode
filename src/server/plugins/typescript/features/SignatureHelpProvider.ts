@@ -45,7 +45,7 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
     if (
       !info ||
       info.items.some((signature) =>
-        this.isInSvelte2tsxGeneratedFunction(signature)
+        this.isInEstrela2tsxGeneratedFunction(signature)
       )
     ) {
       return null;
@@ -164,7 +164,7 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
     };
   }
 
-  private isInSvelte2tsxGeneratedFunction(
+  private isInEstrela2tsxGeneratedFunction(
     signatureHelpItem: ts.SignatureHelpItem
   ) {
     return signatureHelpItem.prefixDisplayParts.some((part) =>

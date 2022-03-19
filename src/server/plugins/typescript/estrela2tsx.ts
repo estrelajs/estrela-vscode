@@ -1,59 +1,45 @@
 import MagicString from "magic-string";
 import ts from "typescript";
 
-interface Range {
-  start: number;
-  end: number;
+interface TagMetadata {
+  tag: string;
+  attributes: Record<string, string>;
+  content: string;
+  fullContent: string;
+  opening: string;
+  closing: string;
 }
 
 const ESTRELA_FILE_REGEX = /([\w-]+)\.estrela$/;
 
-function createSource(content: string) {
-  return ts.createSourceFile(
-    "file.ts",
-    content,
-    ts.ScriptTarget.ESNext,
-    false,
-    ts.ScriptKind.TSX
-  );
-}
+function findTag(tag: string, code: string): TagMetadata | undefined {
+  const pattern = `(<${tag}(.*?)>)(.*?)(<\/${tag}>)`;
+  const regex = new RegExp(pattern, "s");
 
-function getRange(node: ts.Node, source: ts.SourceFile): Range {
-  const start = node.getStart(source); // minus fake fragment length
-  const end = node.getEnd();
-  return { start, end };
-}
+  const [fullContent, opening, attrs, content, closing] =
+    regex.exec(code) ?? [];
 
-function getElements(source: ts.SourceFile): {
-  script: ts.JsxElement | undefined;
-  style: ts.JsxElement | undefined;
-  template: ts.JsxElement | undefined;
-} {
-  let script: ts.JsxElement | undefined = undefined;
-  let style: ts.JsxElement | undefined = undefined;
-  let template: ts.JsxElement | undefined = undefined;
+  let match: RegExpExecArray | null;
+  const tagRegex = /([\w-]+)=["']?([\w-]+)["']?/g;
+  const attributes: Record<string, string> = {};
 
-  const visitElements = (node: ts.Node) => {
-    if (ts.isJsxElement(node)) {
-      const isTagName = (tag: string) =>
-        ts.isIdentifier(node.openingElement.tagName) &&
-        node.openingElement.tagName.text === tag;
-      if (isTagName("script")) {
-        script = node;
-      }
-      if (isTagName("style")) {
-        style = node;
-      }
-      if (isTagName("template")) {
-        template = node;
-      }
-      return;
-    }
-    node.forEachChild(visitElements);
-  };
+  while ((match = tagRegex.exec(attrs))) {
+    const [, attr, value] = match;
+    attributes[attr] = value;
+  }
 
-  visitElements(source);
-  return { script, style, template };
+  if (fullContent) {
+    return {
+      tag,
+      content,
+      fullContent,
+      attributes,
+      opening,
+      closing,
+    };
+  }
+
+  return undefined;
 }
 
 export function estrela2tsx(
@@ -66,28 +52,41 @@ export function estrela2tsx(
     accessors?: string;
   }
 ) {
-  const [filename, tag] =
+  const [filename, name] =
     ESTRELA_FILE_REGEX.exec(options?.filePath ?? "") ?? [];
 
   const ms = new MagicString(code);
-  const source = createSource(code);
-  const { script, style } = getElements(source);
+  const script = findTag("script", code);
+  const style = findTag("style", code);
+  const tag = script?.tag ?? name;
 
   if (script) {
-    const openRange = getRange(script.openingElement, source);
-    const closeRange = getRange(script.closingElement, source);
-    ms.overwrite(openRange.start, openRange.end, "");
-    ms.overwrite(closeRange.start, closeRange.end, ";(<>");
-    ms.append("\n</>);");
-  } else {
-    ms.prepend(";(<>\n");
+    const openingIndex = code.indexOf(script.opening);
+    const closingIndex = code.indexOf(script.closing);
+    ms.overwrite(
+      openingIndex,
+      openingIndex + script.opening.length,
+      'import { defineElement, html } from "estrela";'
+    );
+    ms.overwrite(
+      closingIndex,
+      closingIndex + script.closing.length,
+      `defineElement("${tag}", () => () => html\`\`);\n(<>`
+    );
     ms.append("\n</>);");
   }
 
   if (style) {
-    const openRange = getRange(style.openingElement, source);
-    const closeRange = getRange(style.closingElement, source);
-    ms.overwrite(openRange.start, closeRange.end, "");
+    ms.replace(style.fullContent, "");
+  }
+
+  // TODO: find a better way to create syntax for `style:width.px`.
+  let match: RegExpExecArray | null;
+  const unsuportedAttr = /[\w-]+:[\w-]+(.\w+)/g;
+  while ((match = unsuportedAttr.exec(code))) {
+    const [, filter] = match;
+    const index = code.indexOf(filter, match.index);
+    ms.remove(index, index + filter.length);
   }
 
   return {
