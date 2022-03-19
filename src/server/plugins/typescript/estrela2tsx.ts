@@ -72,13 +72,17 @@ export function estrela2tsx(
     ms.replace(style.fullContent, "");
   }
 
-  // TODO: find a better way to create syntax for `style:width.px`.
   let match: RegExpExecArray | null;
   const unsuportedAttr =
-    /(((on|bind):[\w-]+)|((class|style)(\.[\w-]+)))(\|\w+)?=['"{]/g;
+    /(((on|bind):[\w-]+)|((class|style)(\.[\w-]+)))(\|\w+)*=['"{]/g;
+
   while ((match = unsuportedAttr.exec(code))) {
-    const [, , , , , , field, filter] = match;
-    [field, filter].filter((word) => {
+    const [text, , , , , , field] = match;
+    const pipes = text
+      .split("|")
+      .slice(1)
+      .map((pipe) => "|" + pipe.split("=")[0]);
+    [field, ...pipes].filter((word) => {
       if (word) {
         const index = code.indexOf(word, match?.index);
         ms.remove(index, index + word.length);

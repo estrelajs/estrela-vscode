@@ -521,11 +521,11 @@
           "patterns": [
             {
               "match": "\\w+",
-              "name": "support.function.estrela"
+              "name": "entity.name.function.pipe.estrela"
             },
             {
               "match": "\\|",
-              "name": "punctuation.separator.estrela"
+              "name": "keyword.operator.logical.estrela"
             }
           ]
         }
