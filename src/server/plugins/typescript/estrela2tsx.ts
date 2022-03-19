@@ -52,8 +52,8 @@ export function estrela2tsx(
     accessors?: string;
   }
 ) {
-  const [filename, name] =
-    ESTRELA_FILE_REGEX.exec(options?.filePath ?? "") ?? [];
+  const filepath = options?.filePath ?? "";
+  const [, name] = ESTRELA_FILE_REGEX.exec(filepath) ?? [];
 
   const ms = new MagicString(code);
   const script = findTag("script", code);
@@ -74,11 +74,16 @@ export function estrela2tsx(
 
   // TODO: find a better way to create syntax for `style:width.px`.
   let match: RegExpExecArray | null;
-  const unsuportedAttr = /[\w-]+:[\w-]+(.\w+)/g;
+  const unsuportedAttr =
+    /(((on|bind):[\w-]+)|((class|style)(\.[\w-]+)))(\|\w+)?=['"{]/g;
   while ((match = unsuportedAttr.exec(code))) {
-    const [, filter] = match;
-    const index = code.indexOf(filter, match.index);
-    ms.remove(index, index + filter.length);
+    const [, , , , , , field, filter] = match;
+    [field, filter].filter((word) => {
+      if (word) {
+        const index = code.indexOf(word, match?.index);
+        ms.remove(index, index + word.length);
+      }
+    });
   }
 
   return {
@@ -86,8 +91,8 @@ export function estrela2tsx(
     code: ms.toString(),
     map: ms.generateMap({
       hires: true,
-      source: filename,
-      file: filename + ".map",
+      source: filepath,
+      file: filepath + ".map",
       includeContent: true,
     }),
   };
