@@ -37,7 +37,6 @@ import {
   regexIndexOf,
   swapRangeStartEndIfNecessary,
 } from "../../../utils";
-import { LSConfigManager } from "../../../ls-config";
 import { isAttributeName, isEventHandler } from "../estrela-ast-utils";
 
 enum DiagnosticCode {
@@ -58,10 +57,7 @@ enum DiagnosticCode {
 }
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
-  constructor(
-    private readonly lsAndTsDocResolver: LSAndTSDocResolver,
-    private configManager: LSConfigManager
-  ) {}
+  constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
   async getDiagnostics(
     document: Document,
@@ -119,8 +115,8 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
       .map(
         mapRange(
           fragment,
-          document,
-          false // this.configManager.getConfig().estrela.useNewTransformation
+          document
+          // this.configManager.getConfig().estrela.useNewTransformation
         )
       )
       .filter(hasNoNegativeLines)
@@ -142,8 +138,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 
 function mapRange(
   fragment: EstrelaSnapshotFragment,
-  document: Document,
-  useNewTransformation: boolean
+  document: Document
 ): (value: Diagnostic) => Diagnostic {
   return (diagnostic) => {
     let range = mapRangeToOriginal(fragment, diagnostic.range);
@@ -175,7 +170,6 @@ function mapRange(
     }
 
     if (
-      useNewTransformation &&
       [DiagnosticCode.MISSING_PROP, DiagnosticCode.MISSING_PROPS].includes(
         diagnostic.code as number
       ) &&

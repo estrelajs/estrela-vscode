@@ -140,8 +140,7 @@ export class TypeScriptPlugin
       this.lsAndTsDocResolver
     );
     this.diagnosticsProvider = new DiagnosticsProviderImpl(
-      this.lsAndTsDocResolver,
-      configManager
+      this.lsAndTsDocResolver
     );
     this.renameProvider = new RenameProviderImpl(
       this.lsAndTsDocResolver,

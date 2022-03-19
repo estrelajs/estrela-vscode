@@ -26,6 +26,10 @@ Estrela files do not use real Jsx elements, it only translates Jsx to `html` str
 
 ## Release Notes
 
+### 1.0.3
+
+Minor bug fixes.
+
 ### 1.0.2
 
 Fixed import bug.

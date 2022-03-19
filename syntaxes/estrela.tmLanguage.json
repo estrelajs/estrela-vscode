@@ -257,6 +257,15 @@
           "contentName": "meta.embedded.expression.estrela source.tsx",
           "patterns": [
             {
+              "begin": "\\G\\s*(?={)",
+              "end": "(?<=})",
+              "patterns": [
+                {
+                  "include": "source.tsx#object-literal"
+                }
+              ]
+            },
+            {
               "include": "source.tsx"
             }
           ]
