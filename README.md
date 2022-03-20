@@ -26,6 +26,10 @@ Estrela files do not use real Jsx elements, it only translates Jsx to `html` str
 
 ## Release Notes
 
+### 1.1.2
+
+Added command to restart language server.
+
 ### 1.1.1
 
 Allow multiple pipes for an attribute.

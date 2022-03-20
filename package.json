@@ -3,7 +3,7 @@
   "displayName": "Estrela for Vscode",
   "description": "Highlight syntax for Estrela files for vscode",
   "icon": "assets/logo.png",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "engines": {
     "vscode": "^1.65.0"
   },
@@ -36,7 +36,10 @@
     "vscode"
   ],
   "activationEvents": [
-    "onLanguage:estrela"
+    "onLanguage:estrela",
+    "onCommand:estrela.restartLanguageServer",
+    "onLanguage:javascript",
+    "onLanguage:typescript"
   ],
   "contributes": {
     "languages": [
@@ -73,6 +76,17 @@
           "source.tsx": "typescriptreact",
           "source.coffee": "coffeescript"
         }
+      }
+    ],
+    "commands": [
+      {
+        "command": "estrela.restartLanguageServer",
+        "title": "Estrela: Restart Language Server"
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "estrela"
       }
     ]
   },
