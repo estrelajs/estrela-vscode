@@ -1,7 +1,4 @@
 import { RawSourceMap, SourceMapConsumer } from "source-map";
-// import { walk } from 'svelte/compiler';
-// import { TemplateNode } from 'svelte/types/compiler/interfaces';
-// import { svelte2tsx, IExportedNames } from 'svelte2tsx';
 import ts from "typescript";
 import {
   Position,
@@ -12,22 +9,21 @@ import {
   Document,
   DocumentMapper,
   FragmentMapper,
+  getLineOffsets,
   IdentityMapper,
+  isInTag,
   offsetAt,
   positionAt,
   TagInformation,
-  isInTag,
-  getLineOffsets,
 } from "../../lib/documents";
 import { pathToUrl } from "../../utils";
 import { ConsumerDocumentMapper } from "./DocumentMapper";
 import { EstrelaNode } from "./estrela-ast-utils";
 import { estrela2tsx } from "./estrela2tsx";
 import {
-  getScriptKindFromAttributes,
   getScriptKindFromFileName,
-  isEstrelaFilePath,
   getTsCheckComment,
+  isEstrelaFilePath,
 } from "./utils";
 
 /**
@@ -104,7 +100,7 @@ export namespace DocumentSnapshot {
       tsxMap,
       // htmlAst,
       text,
-      // exportedNames,
+      exportedNames,
       parserError,
       nrPrependedLines,
       scriptKind,
@@ -116,7 +112,7 @@ export namespace DocumentSnapshot {
       scriptKind,
       text,
       nrPrependedLines,
-      // exportedNames,
+      exportedNames,
       tsxMap
       // htmlAst
     );
@@ -181,28 +177,25 @@ function preprocessEstrelaFile(
   let parserError: ParserError | null = null;
   let nrPrependedLines = 0;
   let text = document.getText();
-  // let exportedNames: IExportedNames = { has: () => false };
-  // let htmlAst: TemplateNode | undefined;
 
-  // const scriptKind = [
-  //   getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
-  //   getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {}),
-  // ].includes(ts.ScriptKind.TSX)
-  //   ? options.useNewTransformation
-  //     ? ts.ScriptKind.TS
-  //     : ts.ScriptKind.TSX
-  //   : options.useNewTransformation
-  //   ? ts.ScriptKind.JS
-  //   : ts.ScriptKind.JSX;
+  let exportedNames: {
+    states: string[];
+    props: string[];
+    emitters: string[];
+  } = {
+    states: [],
+    props: [],
+    emitters: [],
+  };
+
   const scriptKind = ts.ScriptKind.TSX;
 
   try {
     // get preprocessed tsx file
-    const tsx = estrela2tsx(text, {
-      filePath: document.getFilePath() ?? undefined,
-    });
+    const tsx = estrela2tsx(document);
     text = tsx.code;
     tsxMap = tsx.map;
+    exportedNames = tsx.exportedNames;
 
     if (tsxMap) {
       tsxMap.sources = [document.uri];
@@ -217,59 +210,10 @@ function preprocessEstrelaFile(
     // TODO: handle error.
   }
 
-  // try {
-  //     const tsx = svelte2tsx(text, {
-  //         filename: document.getFilePath() ?? undefined,
-  //         isTsFile: options.useNewTransformation
-  //             ? scriptKind === ts.ScriptKind.TS
-  //             : scriptKind === ts.ScriptKind.TSX,
-  //         mode: options.useNewTransformation ? 'ts' : 'tsx',
-  //         typingsNamespace: options.useNewTransformation ? options.typingsNamespace : undefined,
-  //         emitOnTemplateError: options.transformOnTemplateError,
-  //         namespace: document.config?.compilerOptions?.namespace,
-  //         accessors:
-  //             document.config?.compilerOptions?.accessors ??
-  //             document.config?.compilerOptions?.customElement
-  //     });
-  //     text = tsx.code;
-  //     tsxMap = tsx.map;
-  //     exportedNames = tsx.exportedNames;
-  //     // We know it's there, it's not part of the public API so people don't start using it
-  //     htmlAst = (tsx as any).htmlAst;
-
-  //     if (tsxMap) {
-  //         tsxMap.sources = [document.uri];
-
-  //         const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
-  //         const tsCheck = getTsCheckComment(scriptInfo?.content);
-  //         if (tsCheck) {
-  //             text = tsCheck + text;
-  //             nrPrependedLines = 1;
-  //         }
-  //     }
-  // } catch (e: any) {
-  //     // Error start/end logic is different and has different offsets for line, so we need to convert that
-  //     const start: Position = {
-  //         line: (e.start?.line ?? 1) - 1,
-  //         character: e.start?.column ?? 0
-  //     };
-  //     const end: Position = e.end ? { line: e.end.line - 1, character: e.end.column } : start;
-
-  //     parserError = {
-  //         range: { start, end },
-  //         message: e.message,
-  //         code: -1
-  //     };
-
-  //     // fall back to extracted script, if any
-  //     const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
-  //     text = scriptInfo ? scriptInfo.content : '';
-  // }
-
   return {
     tsxMap,
     text,
-    // exportedNames,
+    exportedNames,
     // htmlAst,
     parserError,
     nrPrependedLines,
@@ -291,7 +235,11 @@ export class EstrelaDocumentSnapshot implements DocumentSnapshot {
     public readonly scriptKind: ts.ScriptKind,
     private readonly text: string,
     private readonly nrPrependedLines: number,
-    // private readonly exportedNames: IExportedNames,
+    private readonly exportedNames: {
+      states: string[];
+      props: string[];
+      emitters: string[];
+    },
     // private readonly htmlAst?: TemplateNode
     private readonly tsxMap?: RawSourceMap
   ) {}
@@ -326,7 +274,7 @@ export class EstrelaDocumentSnapshot implements DocumentSnapshot {
   }
 
   hasProp(name: string): boolean {
-    return false; // this.exportedNames.has(name);
+    return this.exportedNames.props.includes(name);
   }
 
   estrelaNodeAt(postionOrOffset: number | Position): EstrelaNode | null {
