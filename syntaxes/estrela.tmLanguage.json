@@ -197,6 +197,14 @@
           ]
         }
       ]
+    },
+    "L:(source.tsx, source.jsx, source.coffee) -*string*": {
+      "patterns": [
+        {
+          "match": "host",
+          "name": "variable.language.this.estrela"
+        }
+      ]
     }
   },
   "patterns": [

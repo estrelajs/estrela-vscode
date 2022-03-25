@@ -333,7 +333,7 @@ export function getNodeIfIsInComponentStartTag(
   const node = html.findNodeAt(offset);
   if (
     !!node.tag &&
-    node.tag[0] === node.tag[0].toUpperCase() &&
+    node.tag.includes("-") &&
     (!node.startTagEnd || offset < node.startTagEnd)
   ) {
     return node;

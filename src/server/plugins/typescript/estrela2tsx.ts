@@ -63,7 +63,11 @@ export function estrela2tsx(
   if (script) {
     const openingIndex = code.indexOf(script.opening);
     const closingIndex = code.indexOf(script.closing);
-    ms.remove(openingIndex, openingIndex + script.opening.length);
+    ms.overwrite(
+      openingIndex,
+      openingIndex + script.opening.length,
+      "// @ts-ignore\nconst host: import('estrela').CustomElement;"
+    );
     ms.overwrite(closingIndex, closingIndex + script.closing.length, `;(<>`);
     ms.append("\n</>);");
   }
@@ -72,6 +76,15 @@ export function estrela2tsx(
     ms.replace(style.fullContent, "");
   }
 
+  // remove html comments
+  const htmlCommentsRegex = /<!--(.*?)-->/gs;
+  [...code.matchAll(htmlCommentsRegex)].forEach((match) => {
+    if (match.index) {
+      ms.overwrite(match.index, match.index + match[0].length, "");
+    }
+  });
+
+  // remove attr extra syntax
   const attributesRegex =
     /(?<=<(?!(script|style|template)))[\w-]+[\s|\n]({.*?}|.)*?(?=>)/gs;
 

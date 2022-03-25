@@ -38,6 +38,7 @@ import {
   swapRangeStartEndIfNecessary,
 } from "../../../utils";
 import { isAttributeName, isEventHandler } from "../estrela-ast-utils";
+import { capitalize } from "lodash";
 
 enum DiagnosticCode {
   MODIFIERS_CANNOT_APPEAR_HERE = 1184, // "Modifiers cannot appear here."
@@ -108,25 +109,17 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         range: convertRange(tsDoc, diagnostic),
         severity: mapSeverity(diagnostic.category),
         source: isTypescript ? "ts" : "js",
-        message: ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
+        message: capitalize(
+          ts
+            .flattenDiagnosticMessageText(diagnostic.messageText, "\n")
+            .replace(/JSX /g, "")
+        ),
         code: diagnostic.code,
         tags: getDiagnosticTag(diagnostic),
       }))
-      .map(
-        mapRange(
-          fragment,
-          document
-          // this.configManager.getConfig().estrela.useNewTransformation
-        )
-      )
+      .map(mapRange(fragment, document))
       .filter(hasNoNegativeLines)
-      .filter(
-        isNoFalsePositive(
-          false, // this.configManager.getConfig().estrela.useNewTransformation,
-          document,
-          tsDoc
-        )
-      )
+      .filter(isNoFalsePositive(document, tsDoc))
       .map(enhanceIfNecessary)
       .map(swapDiagRangeStartEndIfNecessary);
   }
@@ -218,17 +211,19 @@ function hasNoNegativeLines(diagnostic: Diagnostic): boolean {
   return diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0;
 }
 
-function isNoFalsePositive(
-  useNewTransformation: boolean,
-  document: Document,
-  tsDoc: EstrelaDocumentSnapshot
-) {
+function isNoFalsePositive(document: Document, tsDoc: EstrelaDocumentSnapshot) {
   const text = document.getText();
   const usesPug = document.getLanguageAttribute("template") === "pug";
 
   return (diagnostic: Diagnostic) => {
     if (
-      useNewTransformation &&
+      diagnostic.code === DiagnosticCode.USED_BEFORE_ASSIGNED &&
+      diagnostic.message === "Variable 'host' is used before being assigned."
+    ) {
+      return false;
+    }
+
+    if (
       [
         DiagnosticCode.MULTIPLE_PROPS_SAME_NAME,
         DiagnosticCode.DUPLICATE_IDENTIFIER,
@@ -241,7 +236,7 @@ function isNoFalsePositive(
     }
 
     return (
-      isNoJsxCannotHaveMultipleAttrsError(diagnostic) &&
+      // isNoJsxCannotHaveMultipleAttrsError(diagnostic) &&
       isNoUsedBeforeAssigned(diagnostic, text, tsDoc) &&
       (!usesPug || isNoPugFalsePositive(diagnostic, document))
     );

@@ -36,21 +36,6 @@ export class HoverProviderImpl implements HoverProvider {
     }
 
     const textSpan = info.textSpan;
-
-    // show docs of $store instead of store if necessary
-    const is$store = fragment.text
-      .substring(0, info.textSpan.start)
-      .endsWith("(__estrelats_1_store_get(");
-    if (is$store) {
-      const infoFor$store = lang.getQuickInfoAtPosition(
-        tsDoc.filePath,
-        textSpan.start + textSpan.length + 3
-      );
-      if (infoFor$store) {
-        info = infoFor$store;
-      }
-    }
-
     const declaration = ts.displayPartsToString(info.displayParts);
     const documentation = getMarkdownDocumentation(
       info.documentation,
@@ -96,7 +81,7 @@ export class HoverProviderImpl implements HoverProvider {
       return null;
     }
 
-    const eventName = possibleEventName.substr("on:".length);
+    const eventName = possibleEventName.slice("on:".length);
     const event = component
       .getEvents()
       .find((event) => event.name === eventName);
