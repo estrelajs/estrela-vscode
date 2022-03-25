@@ -73,8 +73,6 @@ export function activate(context: ExtensionContext) {
 }
 
 export function activateEstrelaLanguageServer(context: ExtensionContext) {
-  const isDebugging = false;
-
   // warnIfOldExtensionInstalled();
 
   // const runtimeConfig = workspace.getConfiguration("estrela.language-server");
@@ -102,9 +100,6 @@ export function activateEstrelaLanguageServer(context: ExtensionContext) {
   // Add --experimental-modules flag for people using node 12 < version < 12.17
   // Remove this in mid 2022 and bump vs code minimum required version to 1.55
   const runExecArgv: string[] = ["--experimental-modules"];
-  if (isDebugging) {
-    runExecArgv.push(`--inspect=6009`);
-  }
   const debugOptions = {
     execArgv: ["--nolazy", "--experimental-modules", `--inspect=6009`],
   };

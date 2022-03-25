@@ -491,24 +491,13 @@
       ]
     },
     "attributes-directives": {
-      "begin": "(?<!<)(on|bind|class|style)([:\\.])(?:((?:--)?[_$[:alpha:]][_\\-$[:alnum:]]*(?=\\s*=))|((?:--)?[_$[:alpha:]][_\\-$[:alnum:]]*))((\\|\\w+)*)",
+      "begin": "(?<!<)((bind|on)(:))?([\\w-]+)((\\.\\w+)*(\\|\\w+)*)(?=\\s*=)",
       "beginCaptures": {
-        "1": {
-          "patterns": [
-            {
-              "include": "#attributes-directives-keywords"
-            }
-          ]
-        },
         "2": {
-          "name": "punctuation.definition.keyword.estrela"
+          "name": "keyword.control.estrela"
         },
         "3": {
-          "patterns": [
-            {
-              "include": "#attributes-directives-types"
-            }
-          ]
+          "name": "punctuation.definition.keyword.estrela"
         },
         "4": {
           "patterns": [
@@ -520,11 +509,15 @@
         "5": {
           "patterns": [
             {
-              "match": "\\w+",
-              "name": "entity.name.function.pipe.estrela"
+              "match": "(?<=\\.)\\w+",
+              "name": "variable.parameter.estrela"
             },
             {
-              "match": "\\|",
+              "match": "(?<=\\|)\\w+",
+              "name": "entity.name.function.filter.estrela"
+            },
+            {
+              "match": "\\.|\\|",
               "name": "keyword.operator.logical.estrela"
             }
           ]
@@ -549,18 +542,6 @@
         }
       ]
     },
-    "attributes-directives-keywords": {
-      "patterns": [
-        {
-          "match": "on|bind",
-          "name": "keyword.control.estrela"
-        },
-        {
-          "match": "class|style",
-          "name": "entity.other.attribute-name.estrela"
-        }
-      ]
-    },
     "attributes-directives-types": {
       "patterns": [
         {
@@ -568,12 +549,12 @@
           "name": "entity.name.type.estrela"
         },
         {
-          "match": "(?<=(bind):).*$",
-          "name": "variable.parameter.estrela"
+          "match": "bind.*$",
+          "name": "keyword.control.estrela"
         },
         {
-          "match": "(?<=(class|style)\\.).*$",
-          "name": "variable.parameter.estrela"
+          "match": ".*$",
+          "name": "entity.other.attribute-name.estrela"
         }
       ]
     },

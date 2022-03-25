@@ -63,7 +63,7 @@ export function estrela2tsx(
   if (script) {
     const openingIndex = code.indexOf(script.opening);
     const closingIndex = code.indexOf(script.closing);
-    ms.overwrite(openingIndex, openingIndex + script.opening.length, "");
+    ms.remove(openingIndex, openingIndex + script.opening.length);
     ms.overwrite(closingIndex, closingIndex + script.closing.length, `;(<>`);
     ms.append("\n</>);");
   }
@@ -72,23 +72,23 @@ export function estrela2tsx(
     ms.replace(style.fullContent, "");
   }
 
-  let match: RegExpExecArray | null;
-  const unsuportedAttr =
-    /(((on|bind):[\w-]+)|((class|style)(\.[\w-]+)))(\|\w+)*=['"{]/g;
+  const attributesRegex =
+    /(?<=<(?!(script|style|template)))[\w-]+[\s|\n]({.*?}|.)*?(?=>)/gs;
 
-  while ((match = unsuportedAttr.exec(code))) {
-    const [text, , , , , , field] = match;
-    const pipes = text
-      .split("|")
-      .slice(1)
-      .map((pipe) => "|" + pipe.split("=")[0]);
-    [field, ...pipes].filter((word) => {
-      if (word) {
-        const index = code.indexOf(word, match?.index);
-        ms.remove(index, index + word.length);
-      }
+  const unsuportedAttr =
+    /(?<!<)(on:[\w-]+|class|style)([\||\.].*)(?=\s*=\s*['"{])/g;
+
+  [...code.matchAll(attributesRegex)].forEach((match) => {
+    const attributeIndex = match.index ?? 0;
+    const attributes = match[0];
+
+    [...attributes.matchAll(unsuportedAttr)].forEach((match) => {
+      const riptext = match[2];
+      const startIndex = attributeIndex + (match?.index ?? 0);
+      const index = code.indexOf(riptext, startIndex);
+      ms.remove(index, index + riptext.length);
     });
-  }
+  });
 
   return {
     tag,
