@@ -58,7 +58,7 @@ export function estrela2tsx(document: Document) {
     ms.overwrite(
       script.container.start,
       script.start,
-      "// @ts-ignore\nconst host: import('estrela').CustomElement;"
+      "// @ts-ignore\nconst host: import('estrela').EstrelaElement;"
     );
     ms.overwrite(script.end, script.container.end, `;(<>`);
     ms.append("\n</>);");
