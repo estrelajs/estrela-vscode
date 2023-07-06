@@ -1,12 +1,12 @@
 {
   "name": "estrela-vscode",
-  "displayName": "estrela-vscode",
+  "displayName": "Estrela for VSCode",
   "description": "Estrela Styled Syntax for VSCode",
   "author": "Eduardo Rosostolato",
   "publisher": "estrelajs",
   "icon": "assets/logo.png",
   "license": "MIT",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "engines": {
     "vscode": "^1.79.0"
   },

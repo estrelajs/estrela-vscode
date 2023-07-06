@@ -19,11 +19,6 @@
 	"patterns": [
 		{
 			"begin": "(?i)(styled\\([^\\s]+\\))(`)",
-			"beginCaptures": {
-				"1": {
-					"name": "comment.block"
-				}
-			},
 			"end": "(`)",
 			"patterns": [
 				{
