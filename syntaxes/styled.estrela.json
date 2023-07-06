@@ -1,0 +1,39 @@
+{
+	"fileTypes": [
+		"js",
+		"jsx",
+		"ts",
+		"tsx"
+	],
+	"injectionSelector": "L:source.js -string -comment, L:source.jsx -string -comment, L:source.ts -string -comment, L:source.tsx -string -comment",
+	"injections": {
+		"L:source": {
+			"patterns": [
+				{
+					"match": "<",
+					"name": "invalid.illegal.bad-angle-bracket.html"
+				}
+			]
+		}
+	},
+	"patterns": [
+		{
+			"begin": "(?i)(styled\\([^\\s]+\\))(`)",
+			"beginCaptures": {
+				"1": {
+					"name": "comment.block"
+				}
+			},
+			"end": "(`)",
+			"patterns": [
+				{
+					"include": "source.css.scss"
+				},
+				{
+					"include": "source.css"
+				}
+			]
+		}
+	],
+	"scopeName": "styled.estrela"
+}
